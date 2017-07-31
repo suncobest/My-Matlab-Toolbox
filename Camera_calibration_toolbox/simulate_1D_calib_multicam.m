@@ -11,8 +11,7 @@ Zmax = 10000;
 np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
-lmax = 500;
-lamda = [0,sort(rand(1,np1D-1)*lmax)];
+lamda = [0,sort(randi(10,1,np1D-1)*50)];
 
 % motion and interpolation of the stick
 gapx = (Xmax-Xmin)/8;
@@ -112,6 +111,17 @@ for pp = 1:n_cam,
         kth = (kk-1)*n_cam+pp;
         jj = (kk-1)*np1D;
         x_cell{kth} = xx(:,jj+1:jj+np1D);
+    end;
+end;
+
+% set bad views of calibration stick inactive (if the pixel distance is less than 10)
+delta = 20;
+ind_active_views = find(active_imgviews(:)');
+for kth = ind_active_views,
+    x_kk = x_cell{kth};
+    if min(sum(abs(diff(x_kk,[],2)),1))<delta,
+        x_cell{kth} = [];
+        active_imgviews(kth) = 0;
     end;
 end;
 

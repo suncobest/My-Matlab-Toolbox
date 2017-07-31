@@ -9,10 +9,10 @@ function D = dijk(A,s,t)
 %     t = TO node indices
 %       = [] (default), paths to all nodes
 %     D = |s| x |t| matrix of shortest path distances from 's' to 't'
-%       = [D(i,j)], where D(i,j) = distance from node 'i' to node 'j' 
+%       = [D(i,j)], where D(i,j) = distance from node 'i' to node 'j'
 %
 %	(If A is a triangular matrix, then computationally intensive node
-%   selection step not needed since graph is acyclic (triangularity is a 
+%   selection step not needed since graph is acyclic (triangularity is a
 %   sufficient, but not a necessary, condition for a graph to be acyclic)
 %   and A can have non-negative elements)
 %
@@ -24,7 +24,7 @@ function D = dijk(A,s,t)
 
 % Copyright (c) 1998-2000 by Michael G. Kay
 % Matlog Version 1.3 29-Aug-2000
-% 
+%
 %  Modified by JBT, Dec 2000, to delete paths
 
 % Input Error Checking ******************************************************
@@ -61,9 +61,9 @@ P = zeros(length(s),n);
 
 for i = 1:length(s)
    j = s(i);
-   
+
    Di = Inf*ones(n,1); Di(j) = 0;
-   
+
    isLab = logical(zeros(length(t),1));
    if isAcyclic ==  1
       nLab = j - 1;
@@ -74,7 +74,7 @@ for i = 1:length(s)
       UnLab = 1:n;
       isUnLab = logical(ones(n,1));
    end
-   
+
    while nLab < n & ~all(isLab)
       if isAcyclic
          Dj = Di(j);
@@ -84,26 +84,25 @@ for i = 1:length(s)
          UnLab(jj) = [];
          isUnLab(j) = 0;
       end
-      
+
       nLab = nLab + 1;
       if length(t) < n, isLab = isLab | (j == t); end
-      
+
       [jA,kA,Aj] = find(A(:,j));
       Aj(isnan(Aj)) = 0;
-            
+
       if isempty(Aj), Dk = Inf; else Dk = Dj + Aj; end
-      
+
       P(i,jA(Dk < Di(jA))) = j;
       Di(jA) = min(Di(jA),Dk);
-      
+
       if isAcyclic == 1			% Increment node index for upper triangular A
          j = j + 1;
       elseif isAcyclic == 2	% Decrement node index for lower triangular A
          j = j - 1;
       end
-      
+
       %disp( num2str( nLab ));
    end
    D(i,:) = Di(t)';
 end
-
