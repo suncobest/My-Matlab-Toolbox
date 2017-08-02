@@ -37,7 +37,7 @@ end;
 
 for kk = ind_active,
     if all(active_imgviews(:,kk)==0),
-        fprintf(1,'No camera captured points in frame ' num2str(kk) ', The image is now set inactive!\n');
+        fprintf(1,'No camera captured points in frame %d, The image is now set inactive!\n',kk);
     end;
 end;
 active_images = any(active_imgviews,1);
@@ -67,7 +67,7 @@ else
     end;
 end;
 while flag,
-    fprintf(1,['\nDo you want to estimate the pixel skew of all ' num2str(n_cam) ' cameras?\nSet to zero if you don''t!\n']);
+    fprintf(1,'\nDo you want to estimate the pixel skew of all %d cameras?\nSet to zero if you don''t!\n',n_cam);
     % by default do not estimate skew
     est_alpha_vec = input(['est_alpha_vec = ([] = [' num2str(zeros(1,n_cam)) '])']);
     if isempty(est_alpha_vec),
@@ -93,7 +93,7 @@ else
     end;
 end;
 while flag,
-    fprintf(1,['\nDo you want to estimate the aspect ratio of all ' num2str(n_cam) ' cameras?\nSet to zero if you don''t!\n']);
+    fprintf(1,'\nDo you want to estimate the aspect ratio of all %d cameras?\nSet to zero if you don''t!\n',n_cam);
     % by default estimate aspect ratio
     est_aspect_ratio_vec = input(['est_aspect_ratio_vec = ([] = [' num2str(ones(1,n_cam)) '])']);
     if isempty(est_aspect_ratio_vec),
@@ -119,7 +119,7 @@ else
     end;
 end;
 while flag,
-    fprintf(1,['\nDo you want to estimate the principal point of all ' num2str(n_cam) ' cameras?\nSet to zero if you don''t!\n']);
+    fprintf(1,'\nDo you want to estimate the principal point of all %d cameras?\nSet to zero if you don''t!\n',n_cam);
     % by default estimate principal points
     center_optim_vec = input(['center_optim_vec = ([] = [' num2str(ones(1,n_cam)) '])']);
     if isempty(center_optim_vec),
@@ -145,24 +145,27 @@ else
 end;
 if flag,
     est_fc_mat = ones(2,n_cam);
-    for pp = 1:n_cam,
-        flag = 1;
-        while flag,
-            fprintf(1,['\nDo you want to estimate the focal length of camera ' num2str(pp) '?\nSet to zero if you don''t!\n']);
-            % by default estimate focal length
-            est_fc = input(['est_fc [fc1; fc2] of camera ' num2str(pp) ': ([] = [1;1])])']);
-            if isempty(est_fc),
-                est_fc = [1;1];
-                flag = 0;
-            else
-                est_fc = est_fc(:);
-                flag = length(est_fc)~=2;
-                if flag,
-                    fprintf(1,'\nUnexpected dimension of est_fc! Please input again!\n');
+    flag = input('Estimate all cameras'' focal length or not? ([]=yes, other=no) ','s');
+    if ~isempty(flag),
+        for pp = 1:n_cam,
+            flag = 1;
+            while flag,
+                fprintf(1,'\nDo you want to estimate the focal length of camera %d?\nSet to zero if you don''t!\n',pp);
+                % by default estimate focal length
+                est_fc = input(['est_fc [fc1; fc2] of camera ' num2str(pp) ': ([] = [1;1])])']);
+                if isempty(est_fc),
+                    est_fc = [1;1];
+                    flag = 0;
+                else
+                    est_fc = est_fc(:);
+                    flag = length(est_fc)~=2;
+                    if flag,
+                        fprintf(1,'\nUnexpected dimension of est_fc! Please input again!\n');
+                    end;
                 end;
             end;
+            est_fc_mat(:,pp) = est_fc;
         end;
-        est_fc_mat(:,pp) = est_fc;
     end;
 end;
 
@@ -180,7 +183,7 @@ if flag,
     flag = input('Estimate lens distortion or not? ([]=yes, other=no) ','s');
     if isempty(flag),
         for pp = 1:n_cam,
-            fprintf(1,['\nDo you want to estimate the distortion coefficients of camera ' num2str(pp) '?\nSet to zero if you don''t!\n']);
+            fprintf(1,'\nDo you want to estimate the distortion coefficients of camera %d?\nSet to zero if you don''t!\n',pp);
             est_dist = input(['est_dist [k1; k2; k3; k4; k5] of camera ' num2str(pp) ': ([] = [1;1;0;0;0])])']);
             if isempty(est_dist),
                 est_dist = [1;1;0;0;0];
@@ -193,7 +196,7 @@ if flag,
                     est_dist = est_dist(1:5);
                 end;
             end;
-            fprintf(1,['\nest_dist of camera ' num2str(pp) ': [%d; %d; %d; %d; %d].\n'], est_dist);
+            fprintf(1,'\nest_dist of camera %d: [%d; %d; %d; %d; %d].\n',pp, est_dist);
             est_dist_mat(:,pp) = est_dist;
         end;
     end;
@@ -212,7 +215,7 @@ if ~exist('fc_mat','var'),
     flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
     if isempty(flag),
         FOV_angle = 90; %field of view in degrees: for 135 camera, 90 degree of FOV is about 18 mm focal length。
-        fprintf(1,['Initialization of the focal length to a FOV of ' num2str(FOV_angle) ' degrees.\n\n']);
+        fprintf(1,'Initialization of the focal length to a FOV of %f degrees.\n\n',FOV_angle);
         fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
     else
         fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
@@ -258,11 +261,26 @@ alpha_vec(est_alpha_vec==0) = 0;
 kc_mat = kc_mat .* est_dist_mat;
 
 % Conditioning threshold for view rejection
-thresh_cond = 1e8;
+thresh_cond = 1e4;
 % threshold to terminate the main LM iteration
 gradeps = eps*1e8;
 
-%%% Initialization of the extrinsic parameters for global minimization:
+
+%%% calculate the shortest path from all cameras to selected camera.
+A_cam = zeros(n_cam);   % adjacency matrix of all camera nodes
+for pp = 1:n_cam,
+    for kk = pp+1:n_cam,
+        tmp = 1/sum(all(active_imgviews([pp,kk],:),1));   % weight of path
+        A_cam(pp,kk) = tmp;
+        A_cam(kk,pp) = tmp;
+    end;
+end;
+[costs, paths] = dijkstra(A_cam);
+[~, id_mcam] = min(sum(costs, 2));
+path_mcam = paths(id_mcam,:);
+return;
+
+%%% Initialization of the camera parameters for global minimization:
 %%% Computes pairwise extrinsic parameters for all cameras
 
 n_view = n_ima * n_cam;

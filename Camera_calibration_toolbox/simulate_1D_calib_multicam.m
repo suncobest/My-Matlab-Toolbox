@@ -17,16 +17,36 @@ lamda = [0,sort(randi(10,1,np1D-1)*50)];
 gapx = (Xmax-Xmin)/8;
 gapy = (Ymax-Ymin)/8;
 gapz = (Zmax-Zmin)/8;
-n0 = 1+100;
-x0 = [randi(round([Xmin+gapx, Xmax-gapx]),1,n0);
-      randi(round([Ymin+gapy, Ymax-gapy]),1,n0);
-      randi(round([Zmin+gapz, Zmax-gapz]),1,n0)];
+n0 = 2;
+n1 = 100;
+n2 = n0*n1;
+x0 = reshape([randi(round([Xmin+gapx, Xmax-gapx]),1,n2);
+              randi(round([Ymin+gapy, Ymax-gapy]),1,n2);
+              randi(round([Zmin+gapz, Zmax-gapz]),1,n2)],n0*3,n1);
+% sort x0
+for pp=1:n0,
+    ii = (pp-1)*3;
+    x = x0(ii+1:ii+3,:);
+    id = 1;
+    index = ones(1,n1);
+    restid = true(1,n1);
+    restid(id) = 0;
+    for kk=2:n1,
+        ind = find(restid);
+        [~,id] = min(sum(abs(x(:,id)*ones(1,length(ind))-x(:,ind)),1));
+        id = ind(id);
+        restid(id) = 0;
+        index(kk) = id;
+    end;
+    x0(ii+1:ii+3,:) = x(:,index);
+end;
 
-n_ima = (n0-1)*10+1;
-t = linspace(0,n0-1,n_ima);
 % the origin of rods
-Xori = spline_interp3(0:n0-1,x0,t);
-q = squad(0:n0-1,trans_quat_axis(randn(3,n0)),t);
+s = 20;
+n = n1*s;
+n_ima = n2*s;
+Xori = reshape(permute(reshape(spline_interp3(1:n1,x0,linspace(1,n1,n)),3,n0,n),[1,3,2]),3,n_ima);
+q = squad(1:n2,trans_quat_axis(randn(3,n2)),linspace(1,n2,n_ima));
 
 % the direction of rods
 Xdir = zeros(3,n_ima);
@@ -115,7 +135,7 @@ for pp = 1:n_cam,
 end;
 
 % set bad views of calibration stick inactive (if the pixel distance is less than 10)
-delta = 20;
+delta = 10;
 ind_active_views = find(active_imgviews(:)');
 for kth = ind_active_views,
     x_kk = x_cell{kth};
