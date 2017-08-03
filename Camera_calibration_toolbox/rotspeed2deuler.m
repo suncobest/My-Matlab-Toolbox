@@ -84,7 +84,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -106,7 +106,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'XZX',
         if sw,
             for i=1:n,
@@ -128,7 +128,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -150,7 +150,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'YXY',
         if sw,
             for i=1:n,
@@ -172,7 +172,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -194,7 +194,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'YZY',
         if sw,
             for i=1:n,
@@ -216,7 +216,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -238,7 +238,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'ZXZ',
         if sw,
             for i=1:n,
@@ -260,7 +260,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -282,7 +282,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'ZYZ',
         if sw,
             for i=1:n,
@@ -304,7 +304,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -326,7 +326,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'XYZ',
         if sw,
             for i=1:n,
@@ -348,7 +348,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -370,7 +370,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'XZY',
         if sw,
             for i=1:n,
@@ -392,7 +392,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -414,7 +414,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'YXZ',
         if sw,
             for i=1:n,
@@ -436,7 +436,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -458,7 +458,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'YZX',
         if sw,
             for i=1:n,
@@ -480,7 +480,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -502,7 +502,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'ZXY',
         if sw,
             for i=1:n,
@@ -524,7 +524,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -546,7 +546,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     case 'ZYX',
         if sw,
             for i=1:n,
@@ -568,7 +568,7 @@ switch op,
             end;
         end;
         Adt = reshape(dAdtdom*om(:),3,[]);
-        
+
         if nargout>2,
             if sw,
                 for i=1:n,
@@ -590,7 +590,7 @@ switch op,
                 end;
             end;
         end;
-        
+
     otherwise,
         error('Unexpected input for the 3rd argument!');
 end;
@@ -652,14 +652,14 @@ for k=1:12,
     [at1, dat1dav, dat1daa] = rotspeed2deuler(av1, aa, st{k});
     err1 = at1-at;
     fprintf(1,['\nResult of ' st{k} ' :\n\nnorm(at0-at)=%f;   norm(at1-at)=%f;\n'],[norm(err0),norm(err1)]);
-    
+
     % test jacobian
     dav = av0/1000;
     daa = aa/1000;
     at01 = rotspeed2deuler(av0+dav, aa+daa, st{k},0);
     at02 = at0+reshape(dat0dav*dav(:),3,[])+reshape(dat0daa*daa(:),3,[]);
     gain0 = norm(at01-at0)/norm(at01-at02);
-    
+
     at11 = rotspeed2deuler(av1+dav, aa+daa, st{k});
     at12 = at1+reshape(dat1dav*dav(:),3,[])+reshape(dat1daa*daa(:),3,[]);
     gain1 = norm(at11-at1)/norm(at11-at12);

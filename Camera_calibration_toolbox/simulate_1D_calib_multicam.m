@@ -11,7 +11,7 @@ Zmax = 10000;
 np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
-lamda = [0,sort(randi(10,1,np1D-1)*50)];
+lamda = cumsum(0:np1D-1)*100;
 
 % motion and interpolation of the stick
 gapx = (Xmax-Xmin)/8;
@@ -67,9 +67,9 @@ n_cam = 5+randi(20);
 %        alpha_vec: Skew coefficient
 %        kc_mat: Distortion coefficients
 
-x0 = randi([500,1500],1,n_cam);
+x0 = randi([800,1500],1,n_cam);
 imsize = [x0; round(x0./(1+rand(1,n_cam)))];  % size of CMOS
-fc_mat = randi([500,1500], 1, n_cam).*[1;1]+randn(2,n_cam)*50;
+fc_mat = randi([800,1500], 1, n_cam).*[1;1]+randn(2,n_cam)*50;
 cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/10; randn(1,n_cam)/50; randn(2,n_cam)/100; randn(1,n_cam)/1000];
@@ -123,7 +123,7 @@ for pp = 1:n_cam,
     omwkk = Omcw(:,pp);
     Twkk = Tcw(:,pp);
     xx = project_points_mirror2(Xrod,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
-    %% xx = xx+randn(2,Np);       % add noise
+    % xx = xx+randn(2,Np);       % add noise
     mask = reshape(xx(1,:)>-.5 & xx(1,:)<nx-.5 & xx(2,:)>-.5 & xx(2,:)<ny-.5, np1D,n_ima);
     id = all(mask,1);
     active_imgviews(pp,:) = id;
@@ -134,8 +134,8 @@ for pp = 1:n_cam,
     end;
 end;
 
-% set bad views of calibration stick inactive (if the pixel distance is less than 10)
-delta = 10;
+% set bad views of calibration stick inactive (if the pixel distance is less than 20)
+delta = 20;
 ind_active_views = find(active_imgviews(:)');
 for kth = ind_active_views,
     x_kk = x_cell{kth};
@@ -148,7 +148,7 @@ end;
 active_images = any(active_imgviews,1);
 ind_active = find(active_images);
 fprintf(1,'Saving generated parameters for one dimensional calibraion!\n');
-string_save = ['save multicam_calib_data active_imgviews active_images ind_active Np n_ima ' ...
+string_save = ['save multicam_simu_data active_imgviews active_images ind_active Np n_ima ' ...
                    'n_cam n_view np1D lamda Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec hand_list Omcw Tcw x_cell'];
 eval(string_save);

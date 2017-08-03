@@ -20,17 +20,15 @@ function [x] = comp_distortion_oulu(xd,k);
 
 
 if length(k) == 1,
-    
     [x] = comp_distortion(xd,k);
-else    
+else
     k1 = k(1);
     k2 = k(2);
     k3 = k(5);
     p1 = k(3);
     p2 = k(4);
-    
-    x = xd; 				% initial guess
-    
+
+    x = xd;   % initial guess
     for kk=1:10,
         r_2 = sum(x.^2,1);
         k_radial =  1 + k1 * r_2 + k2 * r_2.^2 + k3 * r_2.^3;
@@ -39,5 +37,3 @@ else
         x = (xd - delta_x)./(ones(2,1)*k_radial);
     end;
 end;
-    
-    

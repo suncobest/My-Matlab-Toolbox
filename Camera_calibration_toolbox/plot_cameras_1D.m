@@ -19,7 +19,7 @@ clf;
 hold on;
 if show_camera,
     BASE = [0 1 0 0 0 0;0 0 0 1 0 0;0 0 0 0 0 1]*nu;  % 原点 x基矢量 原点 y基矢量 原点 z基矢量
-    DeltaXYZ = [BASE(:,[2,4,6])*(1+delta), -[1;1;1]*nu*delta];     % text位置： |x, y, z, o
+    DeltaXYZ = [BASE(:,[2,4,6])*(1+delta), -[1;1;1]*nu*delta];     % text位置: x, y, z, o
 
     % 求出图片像素坐标的四个顶点(0,0), (nx-1,0), (nx-1,ny-1), (0,ny-1)的摄像机归一化坐标
     % 若xp和xd都是齐次坐标(3*N, 第三行为1), 则有 xp= KK*xd; 所以xd=KK\xp.

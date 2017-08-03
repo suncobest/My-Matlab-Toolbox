@@ -29,6 +29,13 @@
 if ~exist('x_cell','var') || ~exist('imsize','var'),
     if exist('multicam_calib_data.mat','file')==2,
         load('multicam_calib_data.mat');
+    elseif exist('multicam_simu_data.mat','file')==2,
+        fprintf(1,'\nSimulation data detected! Do you want to load it?\n');
+        flag = input('Load the simulation data or not? ([]=yes, other=no) ','s');
+        if isempty(flag),
+            load('multicam_simu_data.mat');
+            clear Xrod Xori Xdir fc_mat cc_mat kc_mat alpha_vec Omcw Tcw;
+        end;
     else
         fprintf(1,'\nThere is no data required for calibration!\n');
         return;
@@ -180,8 +187,8 @@ else
 end;
 if flag,
     est_dist_mat = zeros(5,n_cam);
-    flag = input('Estimate lens distortion or not? ([]=yes, other=no) ','s');
-    if isempty(flag),
+    flag = input('Estimate lens distortion or not? ([]=no, other=yes) ','s');
+    if ~isempty(flag),
         for pp = 1:n_cam,
             fprintf(1,'\nDo you want to estimate the distortion coefficients of camera %d?\nSet to zero if you don''t!\n',pp);
             est_dist = input(['est_dist [k1; k2; k3; k4; k5] of camera ' num2str(pp) ': ([] = [1;1;0;0;0])])']);
@@ -215,7 +222,7 @@ if ~exist('fc_mat','var'),
     flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
     if isempty(flag),
         FOV_angle = 90; %field of view in degrees: for 135 camera, 90 degree of FOV is about 18 mm focal length。
-        fprintf(1,'Initialization of the focal length to a FOV of %f degrees.\n\n',FOV_angle);
+        fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
         fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
     else
         fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
