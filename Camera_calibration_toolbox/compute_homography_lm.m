@@ -70,8 +70,8 @@ L(1:2:2*Np,7:9) = -((ones(3,1)*mn(1,:)).* Mn)';
 L(2:2:2*Np,7:9) = -((ones(3,1)*mn(2,:)).* Mn)';
 
 % L*hhv=0
-L = L'*L;
-[~,~,V] = svd(L);
+% L = L'*L;
+[~,~,V] = svd(L,0);
 
 hh = V(:,9);  % 最小奇异值对应的右奇异矢量，且norm(hh)=1
 Hrem = reshape(hh,3,3)';   % Hrem为Mn到mn的单应性矩阵

@@ -77,8 +77,8 @@ L(6*Np+1:end,10:end) = A;
 % L*hhv=0
 % To find all the singular values of such a matrix, SVD(FULL(A)) will
 % usually perform better than svds(A,MIN(SIZE(A))). 
-L= L'*L;
-[~,~,V] = svd(full(L));
+% L= L'*L;
+[~,~,V] = svd(full(L),0);
 
 hh = V(1:9,end);  % 最小奇异值对应的右奇异矢量，且norm(hh)=1
 Hrem = reshape(hh,3,3)';   % Hrem为Mn到mn的单应性矩阵

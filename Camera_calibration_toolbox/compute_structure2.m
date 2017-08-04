@@ -111,9 +111,8 @@ for kk = ind_active_pts,
     A(1,:,:) = repmat(xn(1,:,:),1,4).*rt(3,:,:)-rt(1,:,:);
     A(2,:,:) = repmat(xn(2,:,:),1,4).*rt(3,:,:)-rt(2,:,:);
     A = reshape(permute(A,[2,1,3]),4,2*nview)';
-    % A*X=0
-    A = A'*A;
-    [~,s,V] = svd(A);
+    % A*X=0, A = A'*A;
+    [~,s,V] = svd(A,0);
     goodpts(kk) = s(2,2)/s(1,1) >threshold && s(3,3)/s(2,2) >threshold;
     X = V(:,4);
     Xmat(:,kk) = X(1:3)/X(4);
