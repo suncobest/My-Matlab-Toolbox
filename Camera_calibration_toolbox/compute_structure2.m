@@ -34,7 +34,7 @@ if n_cam<2,
 end;
 
 threshold = 1e-5;   %  threshold to assume the singularity of A
-if nargin<9,
+if nargin < 9,
     MaxIter = 0;        % do not refine (default)
     if nargin < 8,
         alphavec = zeros(1,n_cam);
@@ -46,7 +46,7 @@ end;
 
 assert(isequal(size(omcmat),[3,n_cam]),'The 2nd variable is assumed to be axis angle matrix!');
 assert(isequal(size(Tmat),[3,n_cam]),'The 3rd variable is assumed to be translation matrix!');
-assert(isequal(abs(handvec),ones(1,n_cam)),'The 8th variable is assumed to behandness vector!');
+assert(isequal(abs(handvec),ones(1,n_cam)),'The 8th variable is assumed to be handedness vector!');
 [m, n] = size(fmat);
 if m==2 && n==1,
     fmat = fmat(:,ones(1,n_cam));

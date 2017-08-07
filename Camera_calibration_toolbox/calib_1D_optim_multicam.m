@@ -685,6 +685,7 @@ for kk = ind_active_views,
     jj = (kk-1)*n_cam+1;
     omw1 = Omw_mat(:, jj);              %   Rc1= rodrigues(omw1);
     Tw1= Tw_mat(:, jj);
+    Rw1t = rodrigues(-omw1);
     Omcw(:, kk) = omw1;
     Tcw(:, kk) = Tw1;
     active_view = find(active_imgviews(2:end, kk)')+1;
@@ -693,7 +694,6 @@ for kk = ind_active_views,
         omwkk = Omw_mat(:, kth);
         Twkk = Tw_mat(:, kth);
         handkk = handcc(pp);
-        Rw1t = rodrigues(-omw1);
         [omck, Tck] = compose_motion2(-omw1,-Rw1t*Tw1,omwkk,Twkk,handkk);  %  inverse composition
         Omcc_cell{pp} = [Omcc_cell{pp}, omck];
         Tcc_cell{pp} = [Tcc_cell{pp}, Tck];

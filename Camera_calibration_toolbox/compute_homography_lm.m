@@ -20,20 +20,23 @@ function H = compute_homography_lm(m,M)
 
 
 
-Np = size(m,2);
-assert(Np>=4,'It takes at least 4 points to compute homography!');
+[n,Nm] = size(m);
+assert(Nm>=4,'It takes at least 4 points to compute homography!');
 bigeps = eps*1e6;
 
-if size(m,1)<3,
+if n==2,
     m = [m;ones(1,Np)];
     indm = 1:Np;
-else
-    indm = find(abs(m(3,:))>eps);                     % finite points
+elseif n==3,
+    indm = find(abs(m(3,:))>eps);       % finite points
     m(1:2,indm) = m(1:2,indm) ./ (ones(2,1)*m(3,indm));
     m(3,indm) = 1;
+else
+    error('Unexpected dimension of the 2D coordinates!');
 end;
 
-if size(M,1)<3,
+[n,Np] = size(M);
+if size(M,1)==2,
     M = [M;ones(1,Np)];
     indM = 1:Np;
 else

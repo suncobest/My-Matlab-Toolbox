@@ -35,82 +35,72 @@ else
     return;
 end;
 
-threshold = 1e-5;   %  threshold to assume the singularity of A
-if nargin<9,
-    MaxIter = 0;        % do not refine (default)
-    if nargin < 8,
-        alphavec = zeros(1,n_cam);
-        if nargin < 7,
-            kmat = zeros(5,n_cam);
-        end;
-    end;
+if npts < 8,
+    error('At least 8 points are needed to compute the fundamental matrix!');
 end;
 
-assert(isequal(size(omcmat),[3,n_cam]),'The 2nd variable is assumed to be axis angle matrix!');
-assert(isequal(size(Tmat),[3,n_cam]),'The 3rd variable is assumed to be translation matrix!');
-assert(isequal(abs(handvec),ones(1,n_cam)),'The 8th variable is assumed to behandness vector!');
 [m, n] = size(fmat);
 if m==2 && n==1,
-    fmat = fmat(:,ones(1,n_cam));
+    fmat = fmat(:,ones(1,2));
 else
-    assert(m==2 && n==n_cam,'The 4th variable is assumed to be focal length matrix!');
+    assert(m==2 && n==2,'Unexpected dimension of the focal length matrix!');
 end;
 
 [m, n] = size(cmat);
 if m==2 && n==1,
-    cmat = cmat(:,ones(1,n_cam));
+    cmat = cmat(:,ones(1,2));
 else
-    assert(m==2 && n==n_cam,'The 5th variable is assumed to be principal point matrix!');
+    assert(m==2 && n==2,'Unexpected dimension of the principal point matrix!');
+end;
+
+if nargin < 7,
+    MaxIter = 0;        % do not refine (default)
+    if nargin < 6,
+        hand = 1;
+        if nargin < 5,
+            alphavec = zeros(1,2);
+            if nargin < 4,
+                kmat = zeros(5,2);
+            end;
+        end;
+    end;
+end;
+
+assert(abs(hand)==1,'The relative handedness is assumed to be 1 or -1!');
+
+[m, n] = size(alphavec);
+if m==1 && n==1,
+    alphavec = alphavec(ones(1,2));
+else
+    assert(m==1 && n==2,'Unexpected dimension of aspect ratio vector!');
 end;
 
 [m, n] = size(kmat);
 if m==5 && n==1,
-    kmat = kmat(:,ones(1,n_cam));
+    kmat = kmat(:,ones(1,2));
 else
-    assert(m==5 && n==n_cam,'The 6th variable is assumed to be distortion matrix!');
+    assert(m==5 && n==2,'Unexpected dimension of the distortion matrix!');
 end;
 
-[m, n] = size(alphavec);
-if m==1 && n==1,
-    alphavec = alphavec(ones(1,n_cam));
-else
-    assert(m==1 && n==n_cam,'The 7th variable is assumed to be aspect ratio vector!');
-end;
-
-[x1, T1] = normalise2dpts(x1);
-[x2, T2] = normalise2dpts(x2);
+x1n = [normalize_pixel(x1,fmat(:,1),cmat(:,1),kc(:,1),alphavec(1)); ones(1,npts)];
+x2n = [normalize_pixel(x2,fmat(:,2),cmat(:,2),kc(:,2),alphavec(2)); ones(1,npts)];
 
 % Build the constraint matrix
-A = [x2(1,:)'.*x1(1,:)',  x2(1,:)'.*x1(2,:)',  x2(1,:)', ...
-     x2(2,:)'.*x1(1,:)',  x2(2,:)'.*x1(2,:)',  x2(2,:)', ...
-     x1(1,:)',             x1(2,:)',           ones(npts,1)];
+A = [x2n(1,:)'.*x1n(1,:)',  x2n(1,:)'.*x1n(2,:)',  x2n(1,:)', ...
+     x2n(2,:)'.*x1n(1,:)',  x2n(2,:)'.*x1n(2,:)',  x2n(2,:)', ...
+     x1n(1,:)',             x1n(2,:)',           ones(npts,1)];
 
 [U,D,V] = svd(A,0);
 
 % Extract fundamental matrix from the column of V corresponding to
 % smallest singular value.
-F = reshape(V(:,9),3,3)';
+E = reshape(V(:,9),3,3)';
 
 % Enforce constraint that fundamental matrix has rank 2 by performing
 % a svd and then reconstructing with the two largest singular values.
-[U,D,V] = svd(F,0);
-F = U*diag([D(1,1) D(2,2) 0])*V';
+[U,D,V] = svd(E,0);
+E = U*diag([1, 1, 0])*V';
 
-% Denormalise
-F = T2'*F*T1;
-
-if nargout > 1,  	% Solve for epipoles
-    [U,D,V] = svd(F,0);
-    if V(3,3)>eps,
-        e1 = V(:,3)/V(3,3);
-    end;
-    if U(3,3)>eps,
-        e2 = U(:,3)/U(3,3);
-    end;
-    if nargout==2,
-        e1 = [e1,e2];
-    end;
-end;
 
 return;
 

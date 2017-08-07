@@ -21,7 +21,6 @@ function [omckk,Tckk,JJ] = compute_extrinsic_lm_refine2(x_kk,X_kk,omc_init,Tc_in
 % Method: Computes the normalized point coordinates, then computes the 3D pose
 %
 % Important functions called within that program:
-% normalize_pixel: Computes the normalize image point coordinates.
 % rodrigues: transform rotation matrix to axis angle vector, or vice versa.
 %  See also compute_extrinsic_lm_refine, compute_extrinsic_init2, compute_extrinsic_init.
 

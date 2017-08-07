@@ -24,7 +24,6 @@
 % Peter Kovesi
 % School of Computer Science & Software Engineering
 % The University of Western Australia
-% pk at csse uwa edu au
 % http://www.csse.uwa.edu.au/~pk
 %
 % May 2003      - Original version
@@ -35,28 +34,33 @@
 
 function [newpts, T] = normalise2dpts(pts)
 
-if size(pts,1) ~= 3
-    error('pts must be 3xN');
+[m,npts] = size(pts);
+if m == 2,
+    pts = [pts; ones(1,npts)];
+    ind = true(1,npts);
+elseif m==3,
+    % Find the indices of the points that are not at infinity
+    ind = abs(pts(3,:)) > eps;
+else
+    error('Unexpected dimension of input!');
 end
 
-% Find the indices of the points that are not at infinity
-finiteind = find(abs(pts(3,:)) > eps);
 
-if length(finiteind) ~= size(pts,2)
+if length(ind) ~= size(pts,2)
     warning('Some points are at infinity');
 end
 
 % For the finite points ensure homogeneous coords have scale of 1
-pts(1,finiteind) = pts(1,finiteind)./pts(3,finiteind);
-pts(2,finiteind) = pts(2,finiteind)./pts(3,finiteind);
-pts(3,finiteind) = 1;
+pts(1,ind) = pts(1,ind)./pts(3,ind);
+pts(2,ind) = pts(2,ind)./pts(3,ind);
+pts(3,ind) = 1;
 
-c = mean(pts(1:2,finiteind),2);      % Centroid of finite points
-scale = sqrt(2)/mean(sqrt((pts(1,finiteind)-c(1)).^2 + (pts(2,finiteind)-c(2)).^2));
+c = mean(pts(1:2,ind),2);      % Centroid of finite points
+scale = sqrt(2)/mean(sqrt((pts(1,ind)-c(1)).^2 + (pts(2,ind)-c(2)).^2));
 
 T = [scale   0   -scale*c(1)
       0     scale -scale*c(2)
-      0       0      1      ];
+      0       0      1];
 
 newpts = T*pts;
 return;

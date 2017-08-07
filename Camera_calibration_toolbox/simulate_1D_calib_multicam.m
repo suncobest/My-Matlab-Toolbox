@@ -8,7 +8,8 @@ Zmax = 10000;
 
 % the 1D calib rig:
 % number of points on the calibration rig
-np1D = 1+randi(4);
+np1D = 3;
+% np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
 lamda = cumsum(0:np1D-1)*100;
@@ -17,7 +18,7 @@ lamda = cumsum(0:np1D-1)*100;
 gapx = (Xmax-Xmin)/8;
 gapy = (Ymax-Ymin)/8;
 gapz = (Zmax-Zmin)/8;
-n0 = 2;
+n0 = 5;
 n1 = 100;
 n2 = n0*n1;
 x0 = reshape([randi(round([Xmin+gapx, Xmax-gapx]),1,n2);
@@ -59,7 +60,8 @@ end;
 Xrod = reshape(permute(repmat(Xori,[1,1,np1D])+Xdir.*reshape(lamda,[1,1,np1D]), [1,3,2]), 3,[]);
 
 %% cameras:
-n_cam = 5+randi(20);
+n_cam = 20;
+% n_cam = 5+randi(20);
 
 % intrinsic parameters:
 %        fc_mat: focal length of cameras
@@ -79,7 +81,8 @@ kc_mat = zeros(5, n_cam);
 % the orientation of all camera system
 Omcw = randn(3,n_cam);
 % handedness of all cameras relative to world coordinate system
-hand_list = sign(randn(1,n_cam));
+hand_list = ones(1,n_cam);
+% hand_list = sign(randn(1,n_cam));
 
 % aims of all cameras
 x0 = [randi(round([Xmin+gapx*2, Xmax-gapx*2]),1,n_cam);
@@ -127,7 +130,7 @@ for pp = 1:n_cam,
     mask = reshape(xx(1,:)>-.5 & xx(1,:)<nx-.5 & xx(2,:)>-.5 & xx(2,:)<ny-.5, np1D,n_ima);
     id = all(mask,1);
     active_imgviews(pp,:) = id;
-    for kk = find(id);
+    for kk = find(id),
         kth = (kk-1)*n_cam+pp;
         jj = (kk-1)*np1D;
         x_cell{kth} = xx(:,jj+1:jj+np1D);
@@ -152,4 +155,5 @@ string_save = ['save multicam_simu_data active_imgviews active_images ind_active
                    'n_cam n_view np1D lamda Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec hand_list Omcw Tcw x_cell'];
 eval(string_save);
+write_simu_data;
 disp('done.');
