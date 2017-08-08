@@ -112,8 +112,7 @@ for kk = ind_active_pts,
     A(2,:,:) = repmat(xn(2,:,:),1,4).*rt(3,:,:)-rt(2,:,:);
     A = reshape(permute(A,[2,1,3]),4,2*nview)';
     % A*X=0
-    A = A'*A;
-    [~,s,V] = svd(A);
+    [~,s,V] = svd(A,0);
     goodpts(kk) = s(2,2)/s(1,1) >threshold && s(3,3)/s(2,2) >threshold;
     X = V(:,4);
     Xmat(:,kk) = X(1:3)/X(4);
@@ -247,6 +246,8 @@ else
     for i = 1:ncam,
         x = project_points_mirror(X,q(:,i),T(:,i),hand(i),f(:,i),c(:,i),k(:,i),alpha(i));
         if checkoutpic,
+            nx = imageXY(1,i);
+            ny = imageXY(2,i);
             outind = x(1,:)>nx-0.5 | x(1,:)<-0.5 | x(2,:)>ny-0.5 | x(2,:)<-0.5;
             x(:,outind) = NaN;
         end;
