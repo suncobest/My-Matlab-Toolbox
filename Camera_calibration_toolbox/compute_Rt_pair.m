@@ -1,10 +1,12 @@
-function [Omc,Tc,Emat] = compute_Rt_pair(xpair,fmat,cmat,kmat,alphavec,hand,MaxIter)
+function [Omc,Tc,Emat] = compute_Rt_pair(xpair,fmat,cmat,kmat,alphavec,hand)
 % COMPUTE_RT_PAIR - computes essential matrix from corresponding points of two cameras
 % and decompose it into R and t. Where
 %         Xc2 = R*hand*Xc1+t.
 % Function computes the essential matrix from 8 or more matching points in
 % a stereo pair of images.  The normalised 8 point algorithm given by
 % Hartley and Zisserman p265 is used.
+% Decompose essential matrix into Rt: p257-p259.
+% Linear triangulation methods: p312.
 %
 % Arguments:
 %          xpair: corresponding image points of two cameras: 2*npts*2 or 4*npts
@@ -53,15 +55,12 @@ else
     assert(m==2 && n==2,'Unexpected dimension of the principal point matrix!');
 end;
 
-if nargin < 7,
-    MaxIter = 0;        % do not refine (default)
-    if nargin < 6,
-        hand = 1;
-        if nargin < 5,
-            alphavec = zeros(1,2);
-            if nargin < 4,
-                kmat = zeros(5,2);
-            end;
+if nargin < 6,
+    hand = 1;
+    if nargin < 5,
+        alphavec = zeros(1,2);
+        if nargin < 4,
+            kmat = zeros(5,2);
         end;
     end;
 end;
@@ -98,6 +97,7 @@ Emat = reshape(V(:,9),3,3)';
 [U,~,V] = svd(Emat);
 Emat = U*diag([1, 1, 0])*V';
 
+% decompose essential matrix into R and T: ||T|| = 1.
 W = [0, -1, 0;
      1, 0, 0;
      0, 0, 1];
@@ -114,6 +114,7 @@ end;
 x1 = x1n(:,1);
 x2 = x2n(:,1);
 id = 0;
+% linear triangulation of two views
 for pp=1:4,
     A = zeros(4);
     A(1:2,:) = x1*[0,0,1,0]-[1,0,0,0; 0,1,0,0];
@@ -155,7 +156,7 @@ T = [zeros(3,1),-Rt'*(Xm+(2000+200*randn)*direc)];
 xxx = NaN(4,npts);
 imageXY = 500+randi(500,2,2);
 fov_angle = 25+randi(maxfov,1,2);
-f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);..
+f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
 c = (imageXY-1)/2;
 div = 3.^(repmat((1:5)',1,2))+5;
 k = randn(5,2)./div;

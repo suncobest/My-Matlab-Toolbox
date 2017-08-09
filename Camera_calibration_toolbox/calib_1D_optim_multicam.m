@@ -226,7 +226,7 @@ if ~exist('fc_mat','var'),
         fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
     else
         fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
-        init_intrinsic_1D_multicam;
+        intrinsic_1D_rot_multicam;
     end;
 end;
 
@@ -283,46 +283,47 @@ for pp = 1:n_cam,
     end;
 end;
 [costs, paths] = dijkstra(A_cam);
-[~, id_mcam] = min(sum(costs, 2));
-path_mcam = paths(id_mcam,:);
-return;
+[~, idm] = min(sum(costs, 2));
+pathm = paths(idm,:);
 
 %%% Initialization of the camera parameters for global minimization:
 %%% Computes pairwise extrinsic parameters for all cameras
-
+nc = 10;
 n_view = n_ima * n_cam;
-Omw_mat = NaN(3, n_view);
-Tw_mat = NaN(3, n_view);
+Om_mat = NaN(3, n_cam);
+T_mat = NaN(3, n_cam);
+Om_mat(:,idm) = 0;
+T_mat(:,idm) = 0;
+OmT_cell = cell(n_cam);
+OmT_cell{idm,idm} = zeros(3,2);
+ok_mat = false(n_cam);
+ok_mat(idm,idm) = 1;
+active_view = true(1,n_cam);
+handcc = hand_list(idm)*hand_list;
+
 for pp = 1:n_cam,
-    fc = fc_mat(:,pp);
-    cc = cc_mat(:,pp);
-    kc = kc_mat(:,pp);
-    alpha_c = alpha_vec(pp);
-    handkk = hand_list(pp);
-    active_view = find(active_imgviews(pp,:));
-    for kk = active_view,
-        kth = (kk-1)*n_cam+pp;
-        x_kk = x_cell{kth};
-        X_kk = X_cell{kth};
-        if isempty(x_kk) || isnan(x_kk(1)),   % if x_kk is [] or NaN, then the image is set inactive;
-            fprintf(1,'Warning: Cannot calibrate (camera %d, image %d). This image is now set inactive.\n',pp,kk);
-            active_imgviews(pp,kk) = 0;
-            x_cell{kth} = [];
-            X_cell{kth} = [];
-            dXY_mat(:, kth) = NaN(2,1);
-            n_sq_mat(:, kth) = NaN(2,1);
-        else
-            [omwkk,Twkk] = compute_extrinsic_init2(x_kk,X_kk,fc,cc,kc,alpha_c,handkk);
-            [omwkk,Twkk,JJ_kk] = compute_extrinsic_lm_refine2(x_kk,X_kk,omwkk,Twkk,handkk,fc,cc,kc,alpha_c,MaxIter2,thresh_cond);
-            if check_cond && (cond(JJ_kk)> thresh_cond),
-                active_imgviews(pp,kk) = 0;
-                fprintf(1,'\nWarning: (camera %d, image %d) ill-conditioned. This image is now set inactive.\n',pp,kk);
-            elseif any(isnan(omwkk)),
-                active_imgviews(pp,kk) = 0;
-                fprintf(1,'\nWarning: The extrinsic rotation is NaN! Deactivating (camera %d, image %d).\n',pp,kk);
+    if active_view(pp),
+        camlist = pathm{pp};
+        for ii = 1:length(camlist)-1,
+            id = camlist([ii,ii+1]);
+            ind = all(active_imgviews(id,:),1);
+            flag = sum(ind,2) >= nc;
+            if flag,
+                fc = fc_mat(:,id);
+                cc = cc_mat(:,id);
+                kc = kc_mat(:,id);
+                alpha_c = alpha_vec(id);
+                handkk = handcc(id(1))*handcc(id(2));
+                kk = find(ind);
+                xx = cell2mat(x_cell(ones(2,1)*(kk-1)*n_cam+id'));
+                [om,T] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk)
+
+
+
+
             else
-                Omw_mat(:,  kth) = omwkk;
-                Tw_mat(:,  kth) = Twkk;
+                active_view(camlist(kk+1:end)) = 0;
+                break;
             end;
         end;
     end;

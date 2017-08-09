@@ -12,7 +12,8 @@ np1D = 3;
 % np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
-lamda = cumsum(0:np1D-1)*100;
+lamda = cumsum(0:np1D-1)*200;
+% lamda = cumsum(0:np1D-1)*100;
 
 % motion and interpolation of the stick
 gapx = (Xmax-Xmin)/8;

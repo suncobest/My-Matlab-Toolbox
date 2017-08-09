@@ -133,10 +133,6 @@ if flag,
     paths = paths';
 end;
 
-% Pass the path as an array if only one source/destination were given
-if L == 1 && M == 1,
-    paths = paths{1};
-end;
 
 return;
 
