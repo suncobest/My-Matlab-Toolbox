@@ -34,7 +34,7 @@ if ~exist('x_cell','var') || ~exist('imsize','var'),
         flag = input('Load the simulation data or not? ([]=yes, other=no) ','s');
         if isempty(flag),
             load('multicam_simu_data.mat');
-            clear Xrod Xori Xdir fc_mat cc_mat kc_mat alpha_vec Omcw Tcw;
+            % clear Xrod Xori Xdir fc_mat cc_mat kc_mat alpha_vec Omcw Tcw;
         end;
     else
         fprintf(1,'\nThere is no data required for calibration!\n');
@@ -288,56 +288,61 @@ pathm = paths(idm,:);
 
 %%% Initialization of the camera parameters for global minimization:
 %%% Computes pairwise extrinsic parameters for all cameras
-nc = 10;
+nc = 10;  % threshold number of common images
 n_view = n_ima * n_cam;
 Om_mat = NaN(3, n_cam);
 T_mat = NaN(3, n_cam);
 Om_mat(:,idm) = 0;
 T_mat(:,idm) = 0;
-OmT_cell = cell(n_cam);
-OmT_cell{idm,idm} = zeros(3,2);
-ok_mat = false(n_cam);
-ok_mat(idm,idm) = 1;
 active_view = true(1,n_cam);
 handcc = hand_list(idm)*hand_list;
 
-for pp = 1:n_cam,
+for pp = [1:idm-1, idm+1:n_cam],
     if active_view(pp),
         camlist = pathm{pp};
         for ii = 1:length(camlist)-1,
-            id = camlist([ii,ii+1]);
-            ind = all(active_imgviews(id,:),1);
+            id = camlist([ii,ii+1]);  % index of camera pairs
+            if ~isnan(Om_mat(1,id(2))),
+                % relation of the two cameras is set
+                continue;
+            end;
+            ind = all(active_imgviews(id,:),1);  % logical index of common images
             flag = sum(ind,2) >= nc;
             if flag,
+                % compute pairwise camera relation: ||T2||=1
                 fc = fc_mat(:,id);
                 cc = cc_mat(:,id);
                 kc = kc_mat(:,id);
                 alpha_c = alpha_vec(id);
                 handkk = handcc(id(1))*handcc(id(2));
                 kk = find(ind);
-                xx = cell2mat(x_cell(ones(2,1)*(kk-1)*n_cam+id'));
-                [om,T] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk)
+                xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
+                [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
 
+                % triangulation and  determine the scale factor
+                XX = compute_structure2(xx,[zeros(3,1),om2],[zeros(3,1),T2],[1,handkk],fc,cc,kc,alpha_c);
+                XX = reshape(XX,[3,np1D,length(kk)]);
+                ind = all(all(~isnan(XX),1),2);
+                Xlen = permute(sqrt(sum(diff(XX(:,:,ind),[],2).^2,1)),[3,2,1]);  % length of rod (with ||T2||=1)
+                s = mean(diff(lamda)./mean(Xlen,1));
 
-
-
+                % chain the Euclidean motion
+                [om,T] = compose_motion2(Om_mat(:,id(1)),T_mat(:,id(1)),om2,T2*s,handkk);
+                Om_mat(:,id(2)) = om;
+                T_mat(:,id(2)) = T;
             else
-                active_view(camlist(kk+1:end)) = 0;
+                active_view(camlist(ii+1:end)) = 0;
                 break;
             end;
         end;
     end;
 end;
 
-kk = find(active_images ~= any(active_imgviews,1));
-if ~isempty(kk),
-    desactivated_images = [desactivated_images kk];
-    fprintf(1,'WARNING: Cannot calibrate all cameras of image %d.\n',kk);
-    fprintf(1,'Set active_images(%d)=0;\n',kk);
-end;
+active_imgviews(~active_view,:) = 0;
 active_images = any(active_imgviews,1);
 
-% keyboard;
+return;
+
 
 %% ------------------------------------------ Main Optimization:
 

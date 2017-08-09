@@ -136,44 +136,55 @@ return;
 
 
 %% Test
-npts = 20;
+np = 200;
 checkoutpic = 1;
 maxfov = 90;        % unit: degree
-
-X = [500*randn(2,npts); 2000+200*randn(1,npts)];      % unit: mm
-Xm = mean(X,2); % aim of cameras
-om = [zeros(3,1),randn(3,1)];
-om(:,2) = om(:,2)/norm(om(:,2))*rand*pi;
-hand = [1,sign(randn)]
-Rt = rodrigues(om(:,2))';
-if hand(2)~=1,
-    Rt(3,:) = -Rt(3,:);
-end;
-direc = -Rt(:,3);    % the direction of -Z axis of camera 2
-T = [zeros(3,1),-Rt'*(Xm+(2000+200*randn)*direc)];
-
-% [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdX] = project_points_mirror2(X,om,T,hand,f,c,k,alpha);
-xxx = NaN(4,npts);
-imageXY = 500+randi(500,2,2);
-fov_angle = 25+randi(maxfov,1,2);
-f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
-c = (imageXY-1)/2;
-div = 3.^(repmat((1:5)',1,2))+5;
-k = randn(5,2)./div;
-alpha = 0.01*randn(1,2);
-for i = 1:2,
-    x = project_points_mirror2(X,om(:,i),T(:,i),hand(i),f(:,i),c(:,i),k(:,i),alpha(i));
-    if checkoutpic,
-        nx = imageXY(1,i);
-        ny = imageXY(2,i);
-        outind = x(1,:)>nx-0.5 | x(1,:)<-0.5 | x(2,:)>ny-0.5 | x(2,:)<-0.5;
-        x(:,outind) = NaN;
+div = 3.^(repmat((1:5)',1,2))+10;
+for count = 1:1000,
+    X = [500*randn(2,np); 3000+500*randn(1,np)];      % unit: mm
+    Xm = mean(X,2); % aim of cameras
+    om = [zeros(3,1),randn(3,1)];
+    om(:,2) = om(:,2)/norm(om(:,2))*rand*pi;
+    hd = [1,sign(randn)];
+    Rt = rodrigues(om(:,2))';
+    if hd(2)~=1,
+        Rt(3,:) = -Rt(3,:);
     end;
-    ii = (i-1)*2;
-    xxx(ii+1:ii+2,:) = x;
-end;
+    direc = -Rt(:,3);    % the direction of -Z axis of camera 2
+    T = [zeros(3,1),-Rt'*(Xm+(3000+500*randn)*direc)];
 
-id = all(~isnan(xxx),1);
-[om2, T2, E] = compute_Rt_pair(xxx(:,id),f,c,k,alpha,hand(2));
-eom = om2-om(:,2)
-s = T(:,2)./T2
+    % [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdX] = project_points_mirror2(X,om,T,hd,f,c,k,alpha);
+    xx = NaN(2,np,2);
+    imageXY = 500+randi(500,2,2);
+    fov_angle = 30+randi(maxfov,1,2);
+    f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
+    c = (imageXY-1)/2;
+    k = randn(5,2)./div;
+    % k = zeros(5,2);
+
+    alpha = 0.01*randn(1,2);
+    for i = 1:2,
+        x = project_points_mirror2(X,om(:,i),T(:,i),hd(i),f(:,i),c(:,i),k(:,i),alpha(i));
+        if checkoutpic,
+            nx = imageXY(1,i);
+            ny = imageXY(2,i);
+            outind = x(1,:)>nx-0.5 | x(1,:)<-0.5 | x(2,:)>ny-0.5 | x(2,:)<-0.5;
+            x(:,outind) = NaN;
+        end;
+        xx(1:2,:,i) = x;
+    end;
+
+    id = all(all(~isnan(xx),3),1);
+    xx = xx(:,id,:);
+    X = X(:,id);
+    [om2, T2] = compute_Rt_pair(xx,f,c,k,alpha,hd(2));
+    XX = compute_structure2(xx,[zeros(3,1),om2],[zeros(3,1),T2],hd,f,c,k,alpha);
+    XXlen = sqrt(sum(diff(XX,1,2).^2,1));
+    Xlen = sqrt(sum(diff(X,1,2).^2,1));
+    id = Xlen>1e-3;
+    s = mean(Xlen(id)./XXlen(id));
+    err = norm([om2;T2]-[om(:,2);T(:,2)/s]);
+    if err>1e-2,
+        break;
+    end;
+end;
