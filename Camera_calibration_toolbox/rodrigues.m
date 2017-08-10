@@ -166,12 +166,24 @@ elseif ((m==n) && (m==3) && (norm(in' * in - eye(3)) < bigeps)...
             % the combinations of signs of a pairs of products (in the
             % rotation matrix)
 
-            % theta-->pi, R=[2*w1^2-1, 2*w1*w2, 2*w1*w3; 2*w1*w2, 2*w2^2-1, 2*w2*w3; 2*w1*w3, 2*w2*w3, 2*w3^2-1]
+            % theta-->pi,
+            % R=[2*w1^2-1, 2*w1*w2, 2*w1*w3;
+            %    2*w1*w2, 2*w2^2-1, 2*w2*w3;
+            %    2*w1*w3, 2*w2*w3, 2*w3^2-1]
 
             % Define hashvec and Smat
             hashvec = [0; -1; -3; -9; 9; 3; 1; 13; 5; -7; -11];
-            Smat = [1,1,1; 1,0,-1; 0,1,-1; 1,-1,0; 1,1,0; 0,1,1; 1,0,1; 1,1,1; 1,1,-1;
-                1,-1,-1; 1,-1,1];
+            Smat = [1,1,1;
+                    1,0,-1;
+                    0,1,-1;
+                    1,-1,0;
+                    1,1,0;
+                    0,1,1;
+                    1,0,1;
+                    1,1,1;
+                    1,1,-1;
+                    1,-1,-1;
+                    1,-1,1];
 
             M = (R+eye(3,3))/2;
             uabs = sqrt(M(1,1));        % abs(w1)
@@ -242,6 +254,13 @@ om = pi*u;
 R = rodrigues(om);
 R2 = rodrigues(rodrigues(R));
 norm(R - R2)
+
+%% Another test case where norm(om)=pi from Zhang Pengfei (Aug 10th, 2017)
+R =[-0.999973290773557   0.007308744044141  -0.000000000000001;
+    0.007308744044141   0.999973290773557  -0.000000000000001;
+    0.000000000000001  -0.000000000000001  -1.000000000000000];
+om = rodrigues(R)
+norm(om) - pi
 
 %% Another test case where norm(om)=pi from Chen Feng (June 27th, 2014)
 R = [-0.950146567583153 -6.41765854280073e-05 0.311803617668748; ...

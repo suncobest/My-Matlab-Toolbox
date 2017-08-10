@@ -205,8 +205,8 @@ maxfov = 100;        % unit: degree
 
 X = 100*randn(m,npts);      % unit: mm
 %  Xcenter = mean(X,2); Center of X is set approximately at the origin of Xw frame
-radius = 500+1000*rand(1,ncam); 
-% Xc=R*Xw+T, T is set approximately Z axis of Xc frame, 
+radius = 500+1000*rand(1,ncam);
+% Xc=R*Xw+T, T is set approximately Z axis of Xc frame,
 % so camera is looking at the origin of Xw frame.
 T = [10*randn(2,ncam); radius];
 % remove bad projection by set rotation angle less than pi/3
@@ -219,7 +219,7 @@ xxx = NaN(2,npts,ncam);
 if onecam,
     nx = 500+randi(500);
     ny = 500+randi(500);
-    fov_angle = 5+randi(maxfov);
+    fov_angle = 25+randi(maxfov);
     f = ([nx;ny]/2)/tan(pi*fov_angle/360);
     c = ([nx;ny]-1)/2;
     div = 2.^(1:5)+5;
@@ -235,7 +235,7 @@ if onecam,
     end;
 else
     imageXY = 500+randi(500,2,ncam);
-    fov_angle = 5+randi(maxfov,1,ncam);
+    fov_angle = 25+randi(maxfov,1,ncam);
     f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
     c = (imageXY-1)/2;
     div = 2.^(repmat((1:5)',1,ncam))+5;
@@ -251,7 +251,7 @@ else
         end;
         xxx(:,:,i) = x;
     end;
-end; 
+end;
 
 if m==2,
     X=[X;zeros(1,npts)];
@@ -271,4 +271,3 @@ else
     err = X2-X;
     err_lm = norm(err(:))
 end;
-

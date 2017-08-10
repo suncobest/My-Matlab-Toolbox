@@ -1,10 +1,11 @@
-% The space size (Unit:mm):
+% The space size (Unit:mm): (parallel to camera system)
 Xmin = 0;
 Xmax = 10000;
 Ymin = 0;
 Ymax = 4000;
 Zmin = 0 ;
 Zmax = 10000;
+center = [Xmin+Xmax; Ymin+Ymax; Zmin+Zmax]/2;
 
 % the 1D calib rig:
 % number of points on the calibration rig
@@ -12,14 +13,14 @@ np1D = 3;
 % np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
-lamda = cumsum(0:np1D-1)*200;
+lamda = cumsum(0:np1D-1)*150;
 % lamda = cumsum(0:np1D-1)*100;
 
 % motion and interpolation of the stick
-gapx = (Xmax-Xmin)/8;
-gapy = (Ymax-Ymin)/8;
-gapz = (Zmax-Zmin)/8;
-n0 = 5;
+gapx = (Xmax-Xmin)/6;
+gapy = (Ymax-Ymin)/6;
+gapz = (Zmax-Zmin)/6;
+n0 = 5;  % number of moving stick
 n1 = 100;
 n2 = n0*n1;
 x0 = reshape([randi(round([Xmin+gapx, Xmax-gapx]),1,n2);
@@ -70,25 +71,51 @@ n_cam = 20;
 %        alpha_vec: Skew coefficient
 %        kc_mat: Distortion coefficients
 
-x0 = randi([800,1500],1,n_cam);
-imsize = [x0; round(x0./(1+rand(1,n_cam)))];  % size of CMOS
-fc_mat = randi([800,1500], 1, n_cam).*[1;1]+randn(2,n_cam)*50;
-cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
-alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
+% maxfov = 90;        % unit: degree
+% imsize = 800+randi(1000,2,n_cam);    % size of CMOS
+% fov_angle = 25+randi(maxfov,1,n_cam);
+% fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,n_cam)*50;
+% cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
+% alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/10; randn(1,n_cam)/50; randn(2,n_cam)/100; randn(1,n_cam)/1000];
+
+imsize = (randi(1000,2,1)+800)*ones(1,n_cam);
+fov_angle = 60+randn*10;
+if fov_angle < 30,
+    fov_angle = 40;
+end;
+fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,1)*50;
+cc_mat = (imsize-1)/2+randn(2,1)*50;
+alpha_vec = (randi(2,1)-1).*rand/10*ones(1,n_cam);
+% alpha_vec = zeros(1,n_cam);
 kc_mat = zeros(5, n_cam);
 
 % extrinsic parameters:
 % the orientation of all camera system
-Omcw = randn(3,n_cam);
+
+% theta = -randi([10,30],1,n_cam)*pi/180;
+theta = -20*pi/180*ones(1,n_cam);
+theta = zeros(1,n_cam);
+delta = 2*pi/n_cam;
+psi = 0:delta:2*pi-delta;
+phi = 2*pi*rand(1,n_cam);
+Omcw = NaN(3,n_cam);
+for pp=1:n_cam,
+    Omcw(:,pp) = -rodrigues(trans_euler_mat([psi(pp);theta(pp);phi(pp)],'YXZ'));
+end;
+% Omcw = randn(3,n_cam);
+
 % handedness of all cameras relative to world coordinate system
 hand_list = ones(1,n_cam);
 % hand_list = sign(randn(1,n_cam));
 
 % aims of all cameras
-x0 = [randi(round([Xmin+gapx*2, Xmax-gapx*2]),1,n_cam);
-      randi(round([Ymin+gapy*2, Ymax-gapy*2]),1,n_cam);
-      randi(round([Zmin+gapz*2, Zmax-gapz*2]),1,n_cam)];
+% x0 = [center(1); center(2)+(Ymax-Ymin)/4; center(3)]*ones(1,n_cam);
+x0 = center*ones(1,n_cam);
+
+% x0 = [center(1)+randi(round([-gapx, gapx]/2),1,n_cam);
+%       center(2)+randi(round([-gapy, gapy]/2),1,n_cam);
+%       center(3)+randi(round([-gapz, gapz]/2),1,n_cam)];
 
 % the boundary of environment: A*(x;y;z;1)=0, where [x;y;z] = x0-l*diag([1,1,h])*Rt(:,3);
 A = [1, 0, 0, -Xmin;

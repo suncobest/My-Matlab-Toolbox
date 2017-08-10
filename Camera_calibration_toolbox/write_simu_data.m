@@ -1,3 +1,6 @@
+% write normalized coordinates or not
+flag = 0;
+
 % 3D data are transformed into specific system: X1 = R1*H1*Xw+T1;
 om1 = Omcw(:,1);
 R1t = rodrigues(-om1);
@@ -9,7 +12,7 @@ XX = rigid_refmotion(Xrod,om1,T1,hand1);
 save_name = 'X3d';
 fid = fopen([save_name '.txt'],'wt');
 fprintf(1,['\nSaving 3D data in ''' save_name '.txt''\n']);
-n0 = zeros(1,np1D*3);
+n1 = -ones(1,np1D*3);
 active_view = any(active_imgviews,1);
 for kk=1:n_ima,
     ii = (kk-1)*np1D;
@@ -17,16 +20,15 @@ for kk=1:n_ima,
         x_kk = XX(:,ii+1:ii+np1D);
         fprintf(fid,'%d',kk-1);
         fprintf(fid,' %.6f',x_kk(:));
-        fprintf(fid,'\n');
+        fprintf(fid,'\r\n');
     else
         fprintf(fid,'%d',kk-1);
-        fprintf(fid,' %d',n0);
-        fprintf(fid,'\n');
+        fprintf(fid,' %d',n1);
+        fprintf(fid,'\r\n');
    end;
 end;
 fclose(fid);
 
-n0 = zeros(1,np1D*2);
 n1 = -ones(1,np1D*2);
 save_name = 'camcfg';
 fid = fopen([save_name '.ini'],'wt');
@@ -45,25 +47,27 @@ for pp=1:n_cam,
         Twkk = Tcw(:, pp);
         [omck, Tck] = compose_motion2(-om1,-R1t*T1,omwkk,Twkk,handkk);  %  inverse composition
         % save cameras
-        fprintf(fid,'[camera_%03d]\nKK =',pp-1);
-        fprintf(fid,' %.8f',KK(:));
-        fprintf(fid,'\nkc =');
-        fprintf(fid,' %.8f',kc(:));
-        fprintf(fid,'\nimsize =');
-        fprintf(fid,' %d',imsize(:,pp));
-        fprintf(fid,'\nOmc =');
-        fprintf(fid,' %.8f',omck);
-        fprintf(fid,'\nTc =');
-        fprintf(fid,' %.8f',Tck);
-        fprintf(fid,'\nhandedness = %d\n\n',handkk);
+        fprintf(fid,'[camera_%03d]\r\nKK=',pp-1);
+        fprintf(fid,'%.8f ',KK(:));
+        fprintf(fid,'\r\nkc=');
+        fprintf(fid,'%.8f ',kc(:));
+        fprintf(fid,'\r\nimsize=');
+        fprintf(fid,'%d ',imsize(:,pp));
+        fprintf(fid,'\r\nOmc=');
+        fprintf(fid,'%.8f ',omck);
+        fprintf(fid,'\r\nTc=');
+        fprintf(fid,'%.8f ',Tck);
+        fprintf(fid,'\r\nhandedness=%d \r\n\r\n',handkk);
 
         % save 2D data
         save_name = sprintf('x2d_cam%03d',pp-1);
         ind = fopen([save_name '.txt'],'wt');
         fprintf(1,['\nSaving 2d pixel data of camera %d in ''' save_name '.txt''\n'],pp);
-        save_name = sprintf('x2dn_cam%03d',pp-1);
-        id = fopen([save_name '.txt'],'wt');
-        fprintf(1,['\nSaving 2d normalized data of camera %d in ''' save_name '.txt''\n'],pp);
+        if flag,
+            save_name = sprintf('x2dn_cam%03d',pp-1);
+            id = fopen([save_name '.txt'],'wt');
+            fprintf(1,['\nSaving 2d normalized data of camera %d in ''' save_name '.txt''\n'],pp);
+        end;
         for kk=1:n_ima,
             if active_imgviews(pp,kk),
                 kth = (kk-1)*n_cam+pp;
@@ -71,21 +75,27 @@ for pp=1:n_cam,
                 xn = normalize_pixel(x_kk,fc,cc,kc,alpha_c);
                 fprintf(ind,'%d',kk-1);
                 fprintf(ind,' %.6f',x_kk(:));
-                fprintf(ind,'\n');
-                fprintf(id,'%d',kk-1);
-                fprintf(id,' %.6f',xn(:));
-                fprintf(id,'\n');
+                fprintf(ind,'\r\n');
+                if flag,
+                    fprintf(id,'%d',kk-1);
+                    fprintf(id,' %.6f',xn(:));
+                    fprintf(id,'\r\n');
+                end;
             else
                 fprintf(ind,'%d',kk-1);
                 fprintf(ind,' %d',n1);
-                fprintf(ind,'\n');
-                fprintf(id,'%d',kk-1);
-                fprintf(id,' %d',n0);
-                fprintf(id,'\n');
+                fprintf(ind,'\r\n');
+                if flag,
+                    fprintf(id,'%d',kk-1);
+                    fprintf(id,' %d',n1);
+                    fprintf(id,'\r\n');
+                end;
             end;
         end;
         fclose(ind);
-        fclose(id);
+        if flag,
+            fclose(id);
+        end;
     end;
 end;
 

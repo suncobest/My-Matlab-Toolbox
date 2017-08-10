@@ -341,6 +341,20 @@ end;
 active_imgviews(~active_view,:) = 0;
 active_images = any(active_imgviews,1);
 
+if exist('Omcw','var'),
+    ind = find(active_view);
+    Om2 = NaN(3,n_cam);
+    T2 = Om2;
+    err = zeros(6,length(ind));
+    for kk = 1:length(ind),
+        pp = ind(kk);
+        [om,T] = compose_motion2(Omcw(:,idm),Tcw(:,idm),Om_mat(:,pp),T_mat(:,pp),handcc(pp));
+        Om2(:,pp) = om;
+        T2(:,pp) = T;
+        err(1:3,kk) = om-Omcw(:,pp);
+        err(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
+    end;
+end;
 return;
 
 

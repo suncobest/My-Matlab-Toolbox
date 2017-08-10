@@ -10,7 +10,7 @@ function [out, dout] = trans_euler_mat( in, op)
 %  {'XYX', 'XZX', 'YXY', 'YZY', 'ZXZ', 'ZYZ', 'XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX'}
 %
 %  OUT: rotation matrix or Euler angle depending on input.
-%  DOUT: jacobian matrix of OUT over IN. 
+%  DOUT: jacobian matrix of OUT over IN.
 %   See also rodrgues, trans_quat_mat, trans_quat_axis.
 
 % by zpf, form BIT, 2016-3-25
@@ -63,7 +63,7 @@ switch op,
         R = [c2,                                s2*s3,                                     c3*s2;
             s1*s2,                  c1*c3-c2*s1*s3,                     -c1*s3-c2*c3*s1;
             -c1*s2,             c3*s1+c1*c2*s3,                         c1*c2*c3-s1*s3];
-        
+
         if nargout>1,
             dRdvec = [ 0,                                  -s2,                                     0;
                 c1*s2,                                c2*s1,                                    0;
@@ -75,12 +75,12 @@ switch op,
                 s1*s3-c1*c2*c3,             c3*s1*s2,             c2*s1*s3-c1*c3;
                 -c1*s3-c2*c3*s1,        -c1*c3*s2,          -c3*s1-c1*c2*s3];
         end;
-        
+
     case 'XZX',
         R = [c2,                      -c3*s2,                                   s2*s3;
             c1*s2,                   c1*c2*c3-s1*s3,            -c3*s1-c1*c2*s3;
             s1*s2,                 	c1*s3+c2*c3*s1,               c1*c3-c2*s1*s3];
-        
+
         if nargout>1,
             dRdvec = [0,                                 -s2,                                     0;
                 -s1*s2,                                  c1*c2,                                   0;
@@ -97,7 +97,7 @@ switch op,
         R = [c1*c3-c2*s1*s3,    	      s1*s2,       	    c1*s3+c2*c3*s1;
             s2*s3,                                       c2,                            -c3*s2;
             -c3*s1-c1*c2*s3,	    c1*s2,	    c1*c2*c3-s1*s3];
-        
+
         if nargout>1,
             dRdvec = [-c3*s1-c1*c2*s3,        s1*s2*s3,        -c1*s3-c2*c3*s1;
                 0,                                       c2*s3,                          c3*s2;
@@ -109,12 +109,12 @@ switch op,
                 0,                                     -c2*c3,                          s2*s3;
                 -c1*s3-c2*c3*s1,	  -c1*c3*s2,	    -c3*s1-c1*c2*s3];
         end;
-        
+
     case 'YZY',
         R = [c1*c2*c3-s1*s3,            -c1*s2,                c3*s1+c1*c2*s3;
             c3*s2,                                   c2,                                s2*s3;
             -c1*s3-c2*c3*s1,              s1*s2,                   c1*c3-c2*s1*s3];
-        
+
         if nargout>1,
             dRdvec = [-c1*s3-c2*c3*s1,                -c1*c3*s2,                -c3*s1-c1*c2*s3;
                 0,                                              c2*c3,                                    -s2*s3;
@@ -126,12 +126,12 @@ switch op,
                 0,                                            c2*s3,                                       c3*s2;
                 -c3*s1-c1*c2*s3,                s1*s2*s3,                -c1*s3-c2*c3*s1];
         end;
-        
+
     case 'ZXZ',
         R = [c1*c3-c2*s1*s3,                -c1*s3-c2*c3*s1,                s1*s2;
             c3*s1+c1*c2*s3,                c1*c2*c3-s1*s3,                -c1*s2;
             s2*s3,                                 c3*s2,                                        c2];
-        
+
         if nargout>1,
             dRdvec = [-c3*s1-c1*c2*s3,                s1*s2*s3,                -c1*s3-c2*c3*s1;
                 c1*c3-c2*s1*s3,                -c1*s2*s3,                c1*c2*c3-s1*s3;
@@ -143,12 +143,12 @@ switch op,
                 s1*s2,                                 -c1*c2,                                      0;
                 0,                                         -s2,                                           0];
         end;
-        
+
     case 'ZYZ',
         R = [c1*c2*c3-s1*s3,	-c3*s1-c1*c2*s3,	c1*s2;
             c1*s3+c2*c3*s1,        c1*c3-c2*s1*s3,         s1*s2;
             -c3*s2,                               s2*s3,                            c2];
-        
+
         if nargout>1,
             dRdvec = [-c1*s3-c2*c3*s1,                -c1*c3*s2,                -c3*s1-c1*c2*s3;
                 c1*c2*c3-s1*s3,                -c3*s1*s2,                c1*c3-c2*s1*s3;
@@ -160,12 +160,12 @@ switch op,
                 c1*s2,                                  c2*s1,                                   0;
                 0,                                          -s2,                                     0];
         end;
-        
+
     case 'XYZ',
         R = [c2*c3,                              -c2*s3,                              s2;
             c1*s3+c3*s1*s2,         c1*c3-s1*s2*s3,            -c2*s1;
             s1*s3-c1*c3*s2,         c3*s1 + c1*s2*s3,           c1*c2];
-        
+
         if nargout>1,
             dRdvec = [0,                        -c3*s2,                          -c2*s3;
                 c1*c3*s2-s1*s3,                c2*c3*s1,                c1*c3-s1*s2*s3;
@@ -177,12 +177,12 @@ switch op,
                 -c1*c2,                             s1*s2,                             0;
                 -c2*s1,                         -c1*s2,                               0];
         end;
-        
+
     case 'XZY',
         R = [c2*c3,                              -s2,                                   c2*s3;
             s1*s3+c1*c3*s2,                c1*c2,                c1*s2*s3 - c3*s1;
             c3*s1*s2-c1*s3,                c2*s1,                c1*c3+s1*s2*s3];
-        
+
         if nargout>1,
             dRdvec = [0,                        -c3*s2,                           -c2*s3;
                 c1*s3-c3*s1*s2,                c1*c2*c3,                c3*s1-c1*s2*s3;
@@ -194,12 +194,12 @@ switch op,
                 -c1*c3-s1*s2*s3,                c1*c2*s3,                s1*s3+c1*c3*s2;
                 c1*s2*s3-c3*s1,                c2*s1*s3,                c3*s1*s2-c1*s3];
         end;
-        
+
     case 'YXZ',
         R = [c1*c3+s1*s2*s3,                c3*s1*s2-c1*s3,                c2*s1;
             c2*s3,                                      c2*c3,                               -s2;
             c1*s2*s3-c3*s1,            s1*s3+c1*c3*s2,                c1*c2];
-        
+
         if nargout>1,
             dRdvec = [c1*s2*s3-c3*s1,                c2*s1*s3,                c3*s1*s2-c1*s3;
                 0,                                           -s2*s3,                              c2*c3;
@@ -211,12 +211,12 @@ switch op,
                 0,                                              -c2,                                         0;
                 -c2*s1,                                  -c1*s2,                                     0];
         end;
-        
+
     case 'YZX',
         R = [c1*c2,                s1*s3-c1*c3*s2,                c3*s1+c1*s2*s3;
             s2,                                  c2*c3,                                     -c2*s3;
             -c2*s1,                c1*s3+c3*s1*s2,                c1*c3-s1*s2*s3];
-        
+
         if nargout>1,
             dRdvec = [-c2*s1,                 -c1*s2,                                       0;
                 0,                                        c2,                                            0;
@@ -228,12 +228,12 @@ switch op,
                 0,                                       s2*s3,                              -c2*c3;
                 -c3*s1-c1*s2*s3,                -c2*s1*s3,                -c1*s3-c3*s1*s2];
         end;
-        
+
     case 'ZXY',
         R = [c1*c3-s1*s2*s3,                -c2*s1,                c1*s3+c3*s1*s2;
             c3*s1+c1*s2*s3,                c1*c2,                s1*s3-c1*c3*s2;
             -c2*s3,                               s2,                                c2*c3];
-        
+
         if nargout>1,
             dRdvec = [-c3*s1-c1*s2*s3,                -c2*s1*s3,                -c1*s3-c3*s1*s2;
                 c1*c3-s1*s2*s3,                c1*c2*s3,                c1*c3*s2-s1*s3;
@@ -245,12 +245,12 @@ switch op,
                 c1*s3+c3*s1*s2,                -c1*c2*c3,                c3*s1+c1*s2*s3;
                 0,                                        -c3*s2,                           -c2*s3];
         end;
-        
+
     case 'ZYX',
         R = [c1*c2,                c1*s2*s3-c3*s1,                s1*s3+c1*c3*s2;
             c2*s1,                c1*c3+s1*s2*s3,                c3*s1*s2-c1*s3;
             -s2,                               c2*s3,                               c2*c3];
-        
+
         if nargout>1,
             dRdvec = [-c2*s1,                    -c1*s2,                                 0;
                 c1*c2,                                    -s1*s2,                                0;
@@ -262,13 +262,13 @@ switch op,
                 s1*s3+c1*c3*s2,                c2*c3*s1,                -c1*c3-s1*s2*s3;
                 0,                                          -c3*s2,                                -c2*s3];
         end;
-        
+
     otherwise,
         error('Unexpected input for the 2nd argument!');
 end;
 
 return;
-        
+
 
 function [vec, dvecdR] = mat2euler(R, op)
 
@@ -320,7 +320,7 @@ switch op,
                 0,    0, 0,    0, -1/(1-R(2,2)^2)^(1/2),   0, 0,    0, 0;
                 0, -R(2,3)/(R(2,1)^2+R(2,3)^2), 0,   0,  0,  0, 0, R(2,1)/(R(2,1)^2+R(2,3)^2), 0];
          end;
- 
+
     case 'ZXZ',
         a2 = acos(R(3,3));
         assert(sin(a2)>bigeps,'The 1st and 3rd Euler angle cannot be determined because of gimbal lock!');
@@ -461,7 +461,7 @@ for j =1:12,
         i=i+1;
         om = randn(3,1);
         R = rodrigues(om);
-        dR = rodrigues(om+randn(3,1)/1000)-R;        
+        dR = rodrigues(om+randn(3,1)/1000)-R;
         [a, dadR] = trans_euler_mat(R,st{j});
         a1 = trans_euler_mat(R+dR,st{j});
         a2 = a+dadR*dR(:);
