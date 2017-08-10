@@ -24,7 +24,7 @@ function	[out,dout]=rodrigues(in)
 %% BUG when norm(om)=pi fixed -- April 6th, 1997;
 %% Jean-Yves Bouguet
 
-%% Add projection of the 3x3 matrix onto the set of special ortogonal matrices SO(3) by SVD -- February 7th, 2003;
+%% Add projection of the 3x3 matrix onto thmatlab e set of special ortogonal matrices SO(3) by SVD -- February 7th, 2003;
 %% Jean-Yves Bouguet
 
 % BUG FOR THE CASE norm(om)=pi fixed by Mike Burl on Feb 27, 2007
@@ -191,7 +191,7 @@ elseif ((m==n) && (m==3) && (norm(in' * in - eye(3)) < bigeps)...
             wabs = sqrt(M(3,3));        % abs(w3)
 
             mvec = ([M(1,2), M(2,3), M(1,3)] + [M(2,1), M(3,2), M(3,1)])/2;    % mvec=[w1*w2, w2*w3, w1*w3]
-            syn  = ((mvec > eps) - (mvec < -eps));  % robust sign() function, value: 1,-1,0
+            syn  = ((mvec > 10*eps) - (mvec < -10*eps));  % robust sign() function, value: 1,-1,0
             hash = syn * [9; 3; 1];
             svec = Smat(hashvec == hash,:)';
             out = theta * [uabs; vabs; wabs] .* svec;
