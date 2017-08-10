@@ -31,8 +31,7 @@ function	[out,dout]=rodrigues(in)
 
 
 [m,n] = size(in);
-%bigeps = 10e+4*eps;
-bigeps = 10e+20*eps;
+bigeps = 5*eps;
 
 if ((m==1) && (n==3)) || ((m==3) && (n==1)) %% it is a rotation vector
     theta = norm(in);
@@ -98,9 +97,9 @@ if ((m==1) && (n==3)) || ((m==3) && (n==1)) %% it is a rotation vector
 
 
     %% it is prob. a rot matr.
-elseif ((m==n) && (m==3) && (norm(in' * in - eye(3)) < bigeps)...
-        && (abs(det(in)-1) < bigeps))
-   if det(in)<0
+elseif m==n && m==3,
+    % && norm(in' * in - eye(3)) < bigeps && abs(det(in)-1) < bigeps,
+   if det(in)<0,
        error('The determinant of input matrix must be positive! Otherwise the input matrix is not a rotation matrix.')
    end;
 
@@ -191,7 +190,7 @@ elseif ((m==n) && (m==3) && (norm(in' * in - eye(3)) < bigeps)...
             wabs = sqrt(M(3,3));        % abs(w3)
 
             mvec = ([M(1,2), M(2,3), M(1,3)] + [M(2,1), M(3,2), M(3,1)])/2;    % mvec=[w1*w2, w2*w3, w1*w3]
-            syn  = ((mvec > 10*eps) - (mvec < -10*eps));  % robust sign() function, value: 1,-1,0
+            syn  = ((mvec > bigeps) - (mvec < -bigeps));  % robust sign() function, value: 1,-1,0
             hash = syn * [9; 3; 1];
             svec = Smat(hashvec == hash,:)';
             out = theta * [uabs; vabs; wabs] .* svec;

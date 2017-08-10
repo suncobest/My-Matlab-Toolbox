@@ -139,10 +139,11 @@ return;
 np = 500;
 checkoutpic = 1;
 div = 3.^(repmat((1:5)',1,2))+10;
-for count = 1:1000,
+flag = 0;
+for count = 1:200,
     fov_angle = 60+randn*10;
     l = 4000+randi([-1000,1000]);
-    X = l*tan(fov_angle*pi/360)/4*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
+    X = l*tan(fov_angle*pi/360)/2*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
     Xm = mean(X,2); % aim of cameras
     theta = pi/(rand*10+1);
     om = [zeros(3,1),theta*[cos(theta);0;-sin(theta)]];
@@ -184,7 +185,59 @@ for count = 1:1000,
     id = Xlen>1e-3;
     s = mean(Xlen(id)./XXlen(id));
     err = norm([om2;T2]-[om(:,2);T(:,2)/s]);
-    if err>1e-2,
+    if err>1e-5,
+        flag = 1;
         break;
     end;
+end;
+
+if flag,
+    delta = 0.2;        % shift ot text
+    nu = s/10;
+    figure(4);
+    clf;
+    hold on;
+    BASE = [0 1 0 0 0 0;0 0 0 1 0 0;0 0 0 0 0 1]*nu;  % 原点 x基矢量 原点 y基矢量 原点 z基矢量
+    DeltaXYZ = [BASE(:,[2,4,6])*(1+delta), -[1;1;1]*nu*delta];     % text位置: x, y, z, o
+    for pp = 1:2,
+        fc = f(:,pp);
+        cc = c(:,pp);
+        alpha_c = alpha(pp);
+        nx = imageXY(1,pp);
+        ny = imageXY(2,pp);
+        KK = [fc(1) fc(1)*alpha_c cc(1);0 fc(2) cc(2); 0 0 1];
+        IP = KK\[0 nx-1 nx-1 0 0; 0 0 ny-1 ny-1 0; 1 1 1 1 1]*nu;
+        IP = reshape([IP;BASE(:,1)*ones(1,5);IP],3,15);
+        % Change of reference: wrt reference frame
+        Rckk = rodrigues(om(:,pp));
+        if hd(pp)~=1,
+            Rckk(:,3)=-Rckk(:,3);
+        end;
+        Twkk = T(:,pp);
+        BASE_kk = Rckk'*(BASE-Twkk(:,ones(1,6)));       % Xw=Rk'*(Xk-Tk)
+        DELTA_kk = Rckk'*(DeltaXYZ-Twkk(:,ones(1,4)));
+        IP_kk = Rckk'*(IP -Twkk(:,ones(1,15)));
+        figure(4);
+        plot3(BASE_kk(1,:),BASE_kk(3,:),-BASE_kk(2,:),'b-','linewidth',1);
+        plot3(IP_kk(1,:),IP_kk(3,:),-IP_kk(2,:),'r-','linewidth',1);
+        text(DELTA_kk(1,1),DELTA_kk(3,1),-DELTA_kk(2,1),'X','HorizontalAlignment','center');
+        text(DELTA_kk(1,2),DELTA_kk(3,2),-DELTA_kk(2,2),'Y','HorizontalAlignment','center');
+        text(DELTA_kk(1,3),DELTA_kk(3,3),-DELTA_kk(2,3),'Z','HorizontalAlignment','center');
+        text(DELTA_kk(1,4),DELTA_kk(3,4),-DELTA_kk(2,4),['Cam-' num2str(pp)],'HorizontalAlignment','center');
+    end;
+    plot3(X(1,:),X(3,:),-X(2,:), '+');
+    az = 50;
+    el = 20;
+    figure(4);
+    rotate3d on;
+    grid on;
+    title('Extrinsic results of the camera system');
+    set(4,'color',[1 1 1],'Name','3D','NumberTitle','off');
+    axis equal vis3d tight;
+    xlabel('X');
+    ylabel('Z');
+    zlabel('-Y');
+    view(az,el);
+    hold off;
+    err
 end;

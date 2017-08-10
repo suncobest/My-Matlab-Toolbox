@@ -94,8 +94,7 @@ kc_mat = zeros(5, n_cam);
 % the orientation of all camera system
 
 % theta = -randi([10,30],1,n_cam)*pi/180;
-theta = -20*pi/180*ones(1,n_cam);
-theta = zeros(1,n_cam);
+theta = -30*pi/180*ones(1,n_cam);
 delta = 2*pi/n_cam;
 psi = 0:delta:2*pi-delta;
 phi = 2*pi*rand(1,n_cam);
@@ -110,8 +109,7 @@ hand_list = ones(1,n_cam);
 % hand_list = sign(randn(1,n_cam));
 
 % aims of all cameras
-% x0 = [center(1); center(2)+(Ymax-Ymin)/4; center(3)]*ones(1,n_cam);
-x0 = center*ones(1,n_cam);
+x0 = [center(1); center(2)+(Ymax-Ymin)/2; center(3)]*ones(1,n_cam);
 
 % x0 = [center(1)+randi(round([-gapx, gapx]/2),1,n_cam);
 %       center(2)+randi(round([-gapy, gapy]/2),1,n_cam);
