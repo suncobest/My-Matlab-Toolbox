@@ -16,6 +16,13 @@ np1D = 3;
 lamda = cumsum(0:np1D-1)*150;
 % lamda = cumsum(0:np1D-1)*100;
 
+flag = input('Add noise to projection or not? ([]=no, other=yes) ','s');
+flag = ~isempty(flag);
+if flag,
+    sigstd = 0.1;   % standard deviation of pixel projection
+    xp_body = NaN(2,Np,n_cam);
+end;
+
 % motion and interpolation of the stick
 gapx = (Xmax-Xmin)/6;
 gapy = (Ymax-Ymin)/6;
@@ -94,7 +101,7 @@ kc_mat = zeros(5, n_cam);
 % the orientation of all camera system
 
 % theta = -randi([10,30],1,n_cam)*pi/180;
-theta = -30*pi/180*ones(1,n_cam);
+theta = -20*pi/180*ones(1,n_cam);
 delta = 2*pi/n_cam;
 psi = 0:delta:2*pi-delta;
 phi = 2*pi*rand(1,n_cam);
@@ -109,7 +116,7 @@ hand_list = ones(1,n_cam);
 % hand_list = sign(randn(1,n_cam));
 
 % aims of all cameras
-x0 = [center(1); center(2)+(Ymax-Ymin)/2; center(3)]*ones(1,n_cam);
+x0 = [center(1); center(2)+(Ymax-Ymin)/4; center(3)]*ones(1,n_cam);
 
 % x0 = [center(1)+randi(round([-gapx, gapx]/2),1,n_cam);
 %       center(2)+randi(round([-gapy, gapy]/2),1,n_cam);
@@ -152,7 +159,10 @@ for pp = 1:n_cam,
     omwkk = Omcw(:,pp);
     Twkk = Tcw(:,pp);
     xx = project_points_mirror2(Xrod,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
-    % xx = xx+randn(2,Np);       % add noise
+    if flag,
+        xp_body(:,:,pp) = xx;
+        xx = xx+randn(2,Np)*sigstd;       % add noise
+    end;
     mask = reshape(xx(1,:)>-.5 & xx(1,:)<nx-.5 & xx(2,:)>-.5 & xx(2,:)<ny-.5, np1D,n_ima);
     id = all(mask,1);
     active_imgviews(pp,:) = id;
@@ -174,12 +184,16 @@ for kth = ind_active_views,
     end;
 end;
 
-active_images = any(active_imgviews,1);
+active_images = sum(active_imgviews,1)>1;
+active_imgviews(:,~active_images) = 0;    % deactivate images with only one camera available
 ind_active = find(active_images);
 fprintf(1,'Saving generated parameters for one dimensional calibraion!\n');
 string_save = ['save multicam_simu_data active_imgviews active_images ind_active Np n_ima ' ...
                    'n_cam n_view np1D lamda Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec hand_list Omcw Tcw x_cell'];
+if flag,
+    string_save = [string_save ' xp_body'];
+end;
 eval(string_save);
 write_simu_data;
 disp('done.');

@@ -27,9 +27,7 @@
 %  By ZPF @ZVR, 2017-7-27
 
 if ~exist('x_cell','var') || ~exist('imsize','var'),
-    if exist('multicam_calib_data.mat','file')==2,
-        load('multicam_calib_data.mat');
-    elseif exist('multicam_simu_data.mat','file')==2,
+    if exist('multicam_simu_data.mat','file')==2,
         fprintf(1,'\nSimulation data detected! Do you want to load it?\n');
         flag = input('Load the simulation data or not? ([]=yes, other=no) ','s');
         if isempty(flag),
@@ -47,9 +45,9 @@ for kk = ind_active,
         fprintf(1,'No camera captured points in frame %d, The image is now set inactive!\n',kk);
     end;
 end;
-active_images = any(active_imgviews,1);
+active_images = sum(active_imgviews,1)>1;
 ind_active = find(active_images);
-ind_active_views = find(active_imgviews(:)');
+active_imgviews(:,~active_images) = 0;
 
 if ~exist('MaxIter','var'),
     MaxIter = 30; % Maximum number of iterations in the main LM algorithm
@@ -290,7 +288,7 @@ pathm = paths(idm,:);
 %%% Computes pairwise extrinsic parameters for all cameras
 nc = 10;  % threshold number of common images
 n_view = n_ima * n_cam;
-Om_mat = NaN(3, n_cam);
+Om_mat = NaN(3, n_cam);  % transformation from all cameras to the main camera
 T_mat = NaN(3, n_cam);
 Om_mat(:,idm) = 0;
 T_mat(:,idm) = 0;
@@ -339,7 +337,22 @@ for pp = [1:idm-1, idm+1:n_cam],
 end;
 
 active_imgviews(~active_view,:) = 0;
-active_images = any(active_imgviews,1);
+active_images = sum(active_imgviews,1)>1;
+ind_active = find(active_images);
+active_imgviews(:,~active_images) = 0;
+
+% reconstruct the calibration rod in the main camera:
+npts = n_ima*np1D;
+ind_active_views = find(active_imgviews(:)');
+xx = NaN(2,np1D,n_cam,n_ima);
+xx(:,:,ind_active_views) = reshape(cell2mat(x_cell(ind_active_views)),2,np1D,[]);
+xx = reshape(permute(xx,[1,2,4,3]),[2,npts,n_cam]);
+XX = compute_structure2(xx,Om_mat,T_mat,handcc,fc_mat,cc_mat,kc_mat,alpha_vec);
+X1D_ori = XX(:,1:np1D:end);
+X1D_dir = XX(:,np1D:np1D:end)-X1D_ori;
+X1D_dir = X1D_dir./(ones(3,1)*sqrt(sum(X1D_dir.^2,1)));
+thetaphi = cartesian2spherical(X1D_dir);
+% thetaphi = thetaphi(2:3,:);
 
 if exist('Omcw','var'),
     ind = find(active_view);
@@ -353,6 +366,10 @@ if exist('Omcw','var'),
         T2(:,pp) = T;
         err(1:3,kk) = om-Omcw(:,pp);
         err(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
+    end;
+    if exist('Xrod','var')
+        ind = reshape(repmat(active_images,[np1D,1]),1,npts);
+        ex = XX(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
     end;
 end;
 return;
