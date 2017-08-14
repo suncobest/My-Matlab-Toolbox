@@ -1,4 +1,4 @@
-% The space size (Unit:mm): (parallel to camera system)
+% The space size (Unit:mm): (parallel to the initial camera system)
 Xmin = 0;
 Xmax = 10000;
 Ymin = 0;
@@ -20,7 +20,6 @@ flag = input('Add noise to projection or not? ([]=no, other=yes) ','s');
 flag = ~isempty(flag);
 if flag,
     sigstd = 0.1;   % standard deviation of pixel projection
-    xp_body = NaN(2,Np,n_cam);
 end;
 
 % motion and interpolation of the stick
@@ -160,7 +159,6 @@ for pp = 1:n_cam,
     Twkk = Tcw(:,pp);
     xx = project_points_mirror2(Xrod,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
     if flag,
-        xp_body(:,:,pp) = xx;
         xx = xx+randn(2,Np)*sigstd;       % add noise
     end;
     mask = reshape(xx(1,:)>-.5 & xx(1,:)<nx-.5 & xx(2,:)>-.5 & xx(2,:)<ny-.5, np1D,n_ima);
@@ -191,9 +189,6 @@ fprintf(1,'Saving generated parameters for one dimensional calibraion!\n');
 string_save = ['save multicam_simu_data active_imgviews active_images ind_active Np n_ima ' ...
                    'n_cam n_view np1D lamda Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec hand_list Omcw Tcw x_cell'];
-if flag,
-    string_save = [string_save ' xp_body'];
-end;
 eval(string_save);
 write_simu_data;
 disp('done.');

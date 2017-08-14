@@ -19,7 +19,7 @@ for kk=1:n_ima,
     if active_view(kk),
         x_kk = XX(:,ii+1:ii+np1D);
         fprintf(fid,'%d',kk-1);
-        fprintf(fid,' %.6f',x_kk(:));
+        fprintf(fid,' %.8f',x_kk(:));
         fprintf(fid,'\r\n');
     else
         fprintf(fid,'%d',kk-1);
@@ -74,11 +74,11 @@ for pp=1:n_cam,
                 x_kk = x_cell{kth};
                 xn = normalize_pixel(x_kk,fc,cc,kc,alpha_c);
                 fprintf(ind,'%d',kk-1);
-                fprintf(ind,' %.6f',x_kk(:));
+                fprintf(ind,' %.8f',x_kk(:));
                 fprintf(ind,'\r\n');
                 if flag,
                     fprintf(id,'%d',kk-1);
-                    fprintf(id,' %.6f',xn(:));
+                    fprintf(id,' %.8f',xn(:));
                     fprintf(id,'\r\n');
                 end;
             else

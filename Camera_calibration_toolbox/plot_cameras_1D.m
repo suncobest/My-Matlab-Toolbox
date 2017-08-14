@@ -55,13 +55,13 @@ if show_camera,
 end;
 
 % draw 3D pts:
-step = 100; % step to note the stick
+% step = 100; % step to note the stick
 if exist('Xrod','var')==1,
     xyz = permute(reshape(Xrod,3,np1D,n_ima), [2,3,1]);
     plot3(xyz(:,:,1),xyz(:,:,3),-xyz(:,:,2), '.-');
-    for i=1:step:n_ima,
-        text(Xori(1,i),Xori(3,i),-Xori(2,i),num2str(i),'fontsize',10,'color','k','horizontalalignment','center');
-    end;
+    % for i=1:step:n_ima,
+    %     text(Xori(1,i),Xori(3,i),-Xori(2,i),num2str(i),'fontsize',10,'color','k','horizontalalignment','center');
+    % end;
 end;
 
 
@@ -77,5 +77,5 @@ xlabel('X');
 ylabel('Z');
 zlabel('-Y');
 view(az,el);
-axis([Xmin,Xmax,Zmin,Zmax,-Ymax,-Ymin]*1.2);
+% axis([Xmin,Xmax,Zmin,Zmax,-Ymax,-Ymin]*1.2);
 hold off;
