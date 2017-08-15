@@ -8,7 +8,7 @@ end;
 
 ind_active_views = find(active_imgviews(:)');
 % The unit of the drawing reference: nu
-nu = max(lamda);
+nu = max(rodlen);
 
 if ~exist('show_camera','var'),
     show_camera = 1;

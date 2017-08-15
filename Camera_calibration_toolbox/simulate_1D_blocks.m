@@ -3,11 +3,11 @@
 np1D = 3;
 
 % the 1D coordinates on the rig
-lamda = cumsum(0:np1D-1)*150;
+rodlen = cumsum(0:np1D-1)*150;
 
 % layout of the blocks:  origin of blocks (unit: block)
-% block_oij = [0, 0; 1, 0; 0, 1];   % 3 blocks 24 cameras
 % block_oij = [0, 0];   % 1 blocks 8 cameras
+% block_oij = [0, 0; 1, 0; 0, 1];   % 3 blocks 24 cameras
 [ii,jj] = ind2sub([5,3],1:15);
 block_oij = [ii; jj]'-1;    % 15 blocks 120 cameras
 
@@ -88,7 +88,7 @@ for count = 1:n_block,
 end;
 
 % all 3D points on rods
-Xrod = reshape(permute(Xori+Xdir.*reshape(lamda,[1,1,np1D]), [1,3,2]), 3,[]);
+Xrod = reshape(permute(Xori+Xdir.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
 
 %% 2D projection: generation of 2D points
 n_view = n_ima * n_cam;
@@ -135,7 +135,7 @@ active_imgviews(:,~active_images) = 0;    % deactivate images with only one came
 ind_active = find(active_images);
 fprintf(1,'Saving generated parameters for one dimensional calibraion!\n');
 string_save = ['save multicam_simu_data active_imgviews active_images ind_active Np n_ima ' ...
-                   'n_cam n_view np1D lamda Xlen Ylen Zlen Xrod Xori Xdir hand_list Omcw Tcw '...
+                   'n_cam n_view np1D rodlen Xlen Ylen Zlen Xrod Xori Xdir hand_list Omcw Tcw '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec x_cell'];
 eval(string_save);
 write_simu_data;

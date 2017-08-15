@@ -13,8 +13,8 @@ np1D = 3;
 % np1D = 1+randi(4);
 
 % the 1D coordinates on the rig
-lamda = cumsum(0:np1D-1)*150;
-% lamda = cumsum(0:np1D-1)*100;
+rodlen = cumsum(0:np1D-1)*150;
+% rodlen = cumsum(0:np1D-1)*100;
 
 flag = input('Add noise to projection or not? ([]=no, other=yes) ','s');
 flag = ~isempty(flag);
@@ -65,7 +65,7 @@ for kk=1:n_ima,
 end;
 
 % all 3D points on rods
-Xrod = reshape(permute(repmat(Xori,[1,1,np1D])+Xdir.*reshape(lamda,[1,1,np1D]), [1,3,2]), 3,[]);
+Xrod = reshape(permute(repmat(Xori,[1,1,np1D])+Xdir.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
 
 %% cameras:
 n_cam = 20;
@@ -186,7 +186,7 @@ active_imgviews(:,~active_images) = 0;    % deactivate images with only one came
 ind_active = find(active_images);
 fprintf(1,'Saving generated parameters for one dimensional calibraion!\n');
 string_save = ['save multicam_simu_data active_imgviews active_images ind_active Np n_ima ' ...
-                   'n_cam n_view np1D lamda Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
+                   'n_cam n_view np1D rodlen Xmin Xmax Ymin Ymax Zmin Zmax Xrod Xori Xdir '...
                    'imsize fc_mat cc_mat kc_mat alpha_vec hand_list Omcw Tcw x_cell'];
 eval(string_save);
 write_simu_data;

@@ -1,49 +1,64 @@
-function [X,dXdX0,dXdthetaphi,dXdx] = points_1D(X0,thetaphi,lamda)
+function [X,dXdXori,dXdthphi,dXdlen] = gen_1Drod_points(Xori,thetaphi,rodlen)
 
-% POINTS_1D compute one dimensional points with origin at X0, direction angle of
-% thetaphi=[theta; phi], and 1D coordinates of lamda=[lamda1,lamda2,...,lamdan].
+% GEN_1DROD_POINTS compute one dimensional points with origin at Xori, direction angle
+% of thetaphi=[theta; phi], and 1D coordinates of rodlen=[x1,x2,...,xn].
 % [theta; phi] isthe same as the direction of Spherical coordinate system. Theta is the
 % angle from Z axis to the vector, and phi is the angle from X axis to the vector;
 %
-%  X = X0+r*lamda;
+%  X = Xori+Xn*rodlen;
 %
 %  See also points_1D2, cartesian2spherical, project_points_mirror2, rigid_refmotion.
 
 % By ZPF @ZVR, 2017-7-19
 
 
-lamda = lamda(:)';
-n = length(lamda);
+[m,N] = size(Xori);
+assert(ismatrix(Xori) && m==3,'Unexpected dimension of the 1st input!');
+[m,n] = size(thetaphi);
+assert(ismatrix(thetaphi) && m==2,'Unexpected dimension of the 2nd input!');
+if N ~= n,
+    if N==1,
+        Xori = Xori(:,ones(1,n));
+        N = n;
+    elseif n==1,
+        thetaphi = thetaphi(:,ones(1,N));
+    else
+        error('The columns of the 1st two variables do not match!');
+    end;
+end;
 
-theta = thetaphi(1);
-phi = thetaphi(2);
+rodlen = rodlen(:)';
+np1D = length(rodlen);
 
-ctheta = cos(theta);
-stheta = sin(theta);
-cphi = cos(phi);
-sphi = sin(phi);
+ctheta = cos(thetaphi(1,:));
+stheta = sin(thetaphi(1,:));
+cphi = cos(thetaphi(2,:));
+sphi = sin(thetaphi(2,:));
 
 % direction of the line.
-r = [stheta*cphi; stheta*sphi; ctheta];
+Xn = [stheta.*cphi; stheta.*sphi; ctheta];
 
-X = X0(:,ones(1,n))+r*lamda;
+X = reshape(permute(Xori+Xn.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
+
+
+
 
 if nargout > 1,
-    dXdX0 = repmat(eye(3),n,1);
+    dXdXori = repmat(eye(3),np1D,1);
     if nargout > 2,
-        n3 = 3*n;
+        n3 = 3*np1D;
         dXdr = zeros(n3,3);
-        for i=1:n,
+        for i=1:np1D,
             j = (i-1)*3;
-            dXdr(j+1:j+3,:) = lamda(i)*eye(3);
+            dXdr(j+1:j+3,:) = rodlen(i)*eye(3);
         end;
-        drdthetaphi = [ctheta*cphi,  -stheta*sphi;
+        dXndthphi = [ctheta*cphi,  -stheta*sphi;
                        ctheta*sphi,  stheta*cphi;
                          -stheta,         0];
-        dXdthetaphi = dXdr*drdthetaphi;
+        dXdthphi = dXdr*dXndthphi;
         if nargout > 3,
-            dXdx = repmat([r; zeros(n3,1)],1,n);
-            dXdx = reshape(dXdx(1:n3*n),n3,n);
+            dXdlen = repmat([r; zeros(n3,1)],1,np1D);
+            dXdlen = reshape(dXdlen(1:n3*np1D),n3,np1D);
         end;
     end;
 end;
