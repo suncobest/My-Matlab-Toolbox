@@ -5,15 +5,13 @@ np1D = 3;
 % the 1D coordinates on the rig
 lamda = cumsum(0:np1D-1)*150;
 
-% layout of the blocks
-% block_oij = [0, 0; 1, 0; 0, 1];   % origin of blocks (unit: block)
-block_oij = [0, 0];
+% layout of the blocks:  origin of blocks (unit: block)
+% block_oij = [0, 0; 1, 0; 0, 1];   % 3 blocks 24 cameras
+% block_oij = [0, 0];   % 1 blocks 8 cameras
+[ii,jj] = ind2sub([5,3],1:15);
+block_oij = [ii; jj]'-1;    % 15 blocks 120 cameras
 
 n_block = size(block_oij,1);   % number of blocks
-
-nps = 2; % number of cameras on each side of a block
-ncpb = nps*4;
-n_cam = n_block*ncpb;
 
 flag = input('Add noise to projection or not? ([]=no, other=yes) ','s');
 flag = ~isempty(flag);
@@ -21,18 +19,23 @@ if flag,
     sigstd = 0.1;   % standard deviation of pixel projection
 end;
 
+nps = 2; % number of cameras on each side of a block
+ncpb = nps*4;
+n_cam = n_block*ncpb;
+
 % imsize = 800+randi(1000,2,n_cam);    % size of CMOS
-% fov_angle = 60+randn(1,n_cam)*10;
+% fov_angle = 75+randn(1,n_cam)*5;
 % fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,n_cam)*50;
 % cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 % alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/10; randn(1,n_cam)/50; randn(2,n_cam)/100; randn(1,n_cam)/1000];
 
 imsize = (randi(1000,2,1)+800)*ones(1,n_cam);
-fov_angle = 60+randn*10;
+fov_angle = 75+randn*5;
 if fov_angle < 30,
     fov_angle = 40;
 end;
+
 fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,1)*50;
 cc_mat = (imsize-1)/2+randn(2,1)*50;
 alpha_vec = (randi(2,1)-1).*rand/10*ones(1,n_cam);
@@ -55,20 +58,21 @@ Tcw = Omcw;
 hand_list = ones(1,n_cam);
 % hand_list = sign(randn(1,n_cam));
 
+delta = 200;
 for count = 1:n_block,
     % origin of current block
     x0 = [Xlen*block_oij(count,1); 0; Zlen*block_oij(count,2)];
-    Xori(:,(count-1)*nfpb+1:count*nfpb) = [Xlen*rand(1,nfpb); Ylen*rand(1,nfpb); Zlen*rand(1,nfpb)] + x0;
+    Xori(:,(count-1)*nfpb+1:count*nfpb) = [Xlen*rand(1,nfpb); Ylen*(1+2*rand(1,nfpb))/3; Zlen*rand(1,nfpb)] + x0;
 
     % the origin of cameras in reference system
-    Tc = [Xlen*(1:nps)/(nps+1)+randn(1,nps)*100, Xlen*ones(1,nps), Xlen*(nps:-1:1)/(nps+1)+randn(1,nps)*100, zeros(1,nps);
+    Tc = [Xlen*(1:nps)/(nps+1)+randn(1,nps)*delta, Xlen*ones(1,nps), Xlen*(nps:-1:1)/(nps+1)+randn(1,nps)*delta, zeros(1,nps);
           zeros(1,ncpb);
-          zeros(1,nps), Zlen*(1:nps)/(nps+1)+randn(1,nps)*100, Zlen*ones(1,nps), Zlen*(nps:-1:1)/(nps+1)+randn(1,nps)*100] + x0;
+          zeros(1,nps), Zlen*(1:nps)/(nps+1)+randn(1,nps)*delta, Zlen*ones(1,nps), Zlen*(nps:-1:1)/(nps+1)+randn(1,nps)*delta] + x0;
 
     % the orientation of all camera system
-    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-0+0*rand(1,ncpb))*pi/180;
-    pitch = -(25+0*rand(1,ncpb))*pi/180;
-    roll = (-15+30*rand(1,ncpb))*pi/180;
+    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-20+40*rand(1,ncpb))*pi/180;
+    pitch = -(15+60*rand(1,ncpb))*pi/180;
+    roll = (-10+20*rand(1,ncpb))*pi/180;
     % roll = randn(1,ncpb)/10;    % std = 5.7 degree
     ii = (count-1)*ncpb;
     for pp=1:ncpb,

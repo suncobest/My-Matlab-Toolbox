@@ -77,16 +77,15 @@ n_cam = 20;
 %        alpha_vec: Skew coefficient
 %        kc_mat: Distortion coefficients
 
-% maxfov = 90;        % unit: degree
 % imsize = 800+randi(1000,2,n_cam);    % size of CMOS
-% fov_angle = 25+randi(maxfov,1,n_cam);
+% fov_angle = 75+randn(1,n_cam)*5;
 % fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,n_cam)*50;
 % cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 % alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/10; randn(1,n_cam)/50; randn(2,n_cam)/100; randn(1,n_cam)/1000];
 
 imsize = (randi(1000,2,1)+800)*ones(1,n_cam);
-fov_angle = 60+randn*10;
+fov_angle = 75+randn*5;
 if fov_angle < 30,
     fov_angle = 40;
 end;
