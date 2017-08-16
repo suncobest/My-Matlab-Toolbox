@@ -348,12 +348,12 @@ xx = NaN(2,np1D,n_cam,n_ima);
 xx(:,:,ind_active_views) = reshape(cell2mat(x_cell(ind_active_views)),2,np1D,[]);
 xx = reshape(permute(xx,[1,2,4,3]),[2,npts,n_cam]);
 XX = compute_structure2(xx,Om_mat,T_mat,handcc,fc_mat,cc_mat,kc_mat,alpha_vec);
-X1D_ori = XX(:,1:np1D:end);
-X1D_dir = XX(:,np1D:np1D:end)-X1D_ori;
-X1D_dir = X1D_dir./(ones(3,1)*sqrt(sum(X1D_dir.^2,1)));
-thetaphi = cartesian2spherical(X1D_dir);
-thetaphi = thetaphi(2:3,:);
-X1D_rod = reshape(permute(X1D_ori+X1D_dir.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
+Xo = XX(:,1:np1D:end);
+Xn = XX(:,np1D:np1D:end)-Xo;
+Xn = Xn./(ones(3,1)*sqrt(sum(Xn.^2,1)));
+thph = cartesian2spherical(Xn);
+thph = thph(2:3,:);
+Xp = reshape(permute(Xo+Xn.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
 
 if exist('Omcw','var'),
     ind = find(active_view);
@@ -383,8 +383,9 @@ fprintf(1,'Sparse Levenberg-Marquardt iterations: ');
 %%% Initialization of the global parameter vector:
 ncam16 = 16*n_cam;
 nima5 = 5*n_ima;
+nima3 = 3*n_ima;
 cam_param = reshape([fc_mat; cc_mat; alpha_vec; kc_mat; Om_mat; T_mat],ncam16,1);
-rod_param = reshape([X1D_ori; thetaphi],nima5,1);
+rod_param = reshape([Xo; thph],nima5,1);
 
 cam_update = cam_param;
 rod_update = rod_param;
@@ -401,7 +402,7 @@ for pp=1:n_cam,
     kth = (find(active_view)-1)*n_cam+pp;
     x_kk = cell2mat(x_cell(kth));
     ind = reshape(repmat(active_view,[np1D,1]),1,npts);
-    x = project_points_mirror2(X1D_rod(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
+    x = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
     ex_kk = x_kk - x;
     ex = [ex, ex_kk];
 end;
@@ -424,59 +425,57 @@ for iter = 1:MaxIter,
         U = sparse([],[],[],ncam16,ncam16,16*ncam16);
         V = sparse([],[],[],nima5,nima5,5*nima5);
         W = sparse([],[],[],ncam16,nima5,ncam16*nima5);
-
         ea = zeros(ncam16,1);        % A'*ex
         eb = zeros(nima5,1);         % B'*ex
+
+        % generate 1D points on rod
+        Xp = reshape(rod_param,5,n_ima);
+        Xo = Xp(1:3,:);
+        thph = Xp(4:5,:);
+        [Xp,dXpdXo,dXpdtp] = gen_1D_points(Xo,thph,rodlen);
         for pp=1:n_cam,
             ii = (pp-1)*16;
-            handkk = hand_list(pp);
-            fc = intr_param(ii+1 : ii+2);
-            cc = intr_param(ii+3 : ii+4);
-            alpha_c = intr_param(ii+5);
-            kc = intr_param(ii+6 : ii+10);
-            est_aspect_ratio = est_aspect_ratio_vec(pp);
+            % load camera parameters
+            fc = cam_param(ii+1 : ii+2);
+            cc = cam_param(ii+3 : ii+4);
+            alpha_c = cam_param(ii+5);
+            kc = cam_param(ii+6 : ii+10);
+            omwkk = cam_param(ii+11:ii+13);
+            Twkk = cam_param(ii+14:ii+16);
+            handkk = handcc(pp);
+
+            % load pixel points
             active_view = active_imgviews(pp,:);
             kth = (find(active_view)-1)*n_cam+pp;
             x_kk = cell2mat(x_cell(kth));
+
             ind = reshape(repmat(active_view,[np1D,1]),1,npts);
-            x = project_points_mirror2(X1D_rod(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
+            idx = reshape(repmat(active_view,[3,1]),1,nima3);
+            if est_aspect_ratio_vec(pp),
+                [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdXp] = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
+            else
+                [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdXp] = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc(1),cc,kc,alpha_c);
+                dxdf = repmat(dxdf,[1 2]);
+            end;
+            ex_kk = x_kk - x;
+            Akk = [dxdf dxdc dxdalpha dxdk dxdom dxdT];
 
 
-            ind_active_views = find();
-            for kk = ind_active_views,
-                kth = (kk-1)*n_cam+pp;
-                jj = (kth-1)*6;
-                omwkk = extr_param(jj+1 : jj+3);
-                Twkk = extr_param(jj+4 : jj+6);
-                if any(isnan(omwkk)),
-                    fprintf(1,'Extrinsic parameters of (camera %d, image %d) do not exist!\n',pp,kk);
-                    return;
-                end;
-                X_kk = X_cell{kth};
-                x_kk = x_cell{kth};
-                if est_aspect_ratio,
-                    [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha] = project_points_mirror2(X_kk,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
-                else
-                    [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha] = project_points_mirror2(X_kk,omwkk,Twkk,handkk,fc(1),cc,kc,alpha_c);
-                    dxdf = repmat(dxdf,[1 2]);
-                end;
-                ex_kk = x_kk - x;
-                Akk = [dxdf dxdc dxdalpha dxdk];
-                Bkk = [dxdom dxdT];
 
-                U(ii+1 : ii+10, ii+1 : ii+10) = U(ii+1 : ii+10, ii+1 : ii+10) + sparse(Akk'*Akk);
-                ea(ii+1 : ii+10) = ea(ii+1 : ii+10) + Akk'*ex_kk(:);
-                % Check if this view is ill-conditioned:
-                if check_cond && (cond(Bkk)>thresh_cond),
-                    fprintf(1,['\nWarning: (camera %d, image %d) ill-conditioned. This view is now set inactive. \n' ...
-                                   '(note: to disactivate this option, set check_cond=0)\n'],pp,kk);
-                    active_imgviews(pp,kk) = 0;
-                    extr_param(jj+1 : jj+6) = NaN(6,1);
-                else
-                    V(jj+1 : jj+6, jj+1 : jj+6) = sparse(Bkk'*Bkk);
-                    W(ii+1 : ii+10, jj+1 : jj+6) = sparse(Akk'*Bkk);
-                    eb(jj+1 : jj+6) = Bkk'*ex_kk(:);
-                end;
+            Bkk = [dxdXp*dXpdXo(idx,:) dxdXp*dXpdtp(idx,:)];
+
+            U(ii+1 : ii+10, ii+1 : ii+10) = U(ii+1 : ii+10, ii+1 : ii+10) + sparse(Akk'*Akk);
+            ea(ii+1 : ii+10) = ea(ii+1 : ii+10) + Akk'*ex_kk(:);
+            % Check if this view is ill-conditioned:
+            if check_cond && (cond(Bkk)>thresh_cond),
+                fprintf(1,['\nWarning: (camera %d, image %d) ill-conditioned. This view is now set inactive. \n' ...
+                                '(note: to disactivate this option, set check_cond=0)\n'],pp,kk);
+                active_imgviews(pp,kk) = 0;
+                extr_param(jj+1 : jj+6) = NaN(6,1);
+            else
+                V(jj+1 : jj+6, jj+1 : jj+6) = sparse(Bkk'*Bkk);
+                W(ii+1 : ii+10, jj+1 : jj+6) = sparse(Akk'*Bkk);
+                eb(jj+1 : jj+6) = Bkk'*ex_kk(:);
             end;
         end;
 
