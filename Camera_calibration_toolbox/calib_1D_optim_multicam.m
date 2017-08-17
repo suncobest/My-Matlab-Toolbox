@@ -12,7 +12,6 @@
 %        cc_mat: Principal point coordinates;
 %        alpha_vec: Skew coefficient;
 %        kc_mat: Distortion coefficients;
-%        KK: The intrinsic matrix of a camera;
 %        Omcc: axis angle rotation vectors of camera 1 to other cameras;
 %        Tcc: 3D translation vectors from camera 1 to other cameras;
 %        Xorg: the origin of reconstructed sticks in camera 1;
@@ -288,19 +287,19 @@ pathm = paths(idm,:);
 %%% Computes pairwise extrinsic parameters for all cameras
 nc = 10;  % threshold number of common images
 n_view = n_ima * n_cam;
-Om_mat = NaN(3, n_cam);  % transformation from all cameras to the main camera
-T_mat = NaN(3, n_cam);
-Om_mat(:,idm) = 0;
-T_mat(:,idm) = 0;
-active_view = true(1,n_cam);
+Omcc = NaN(3, n_cam);  % transformation from the main camera to all cameras
+Tcc = NaN(3, n_cam);
+Omcc(:,idm) = 0;
+Tcc(:,idm) = 0;
+active_cam = true(1,n_cam);
 handcc = hand_list(idm)*hand_list;
 
 for pp = [1:idm-1, idm+1:n_cam],
-    if active_view(pp),
+    if active_cam(pp),
         camlist = pathm{pp};
         for ii = 1:length(camlist)-1,
             id = camlist([ii,ii+1]);  % index of camera pairs
-            if ~isnan(Om_mat(1,id(2))),
+            if ~isnan(Omcc(1,id(2))),
                 % relation of the two cameras is set
                 continue;
             end;
@@ -325,21 +324,24 @@ for pp = [1:idm-1, idm+1:n_cam],
                 s = mean(diff(rodlen)./mean(Xlen,1));
 
                 % chain the Euclidean motion
-                [om,T] = compose_motion2(Om_mat(:,id(1)),T_mat(:,id(1)),om2,T2*s,handkk);
-                Om_mat(:,id(2)) = om;
-                T_mat(:,id(2)) = T;
+                [om,T] = compose_motion2(Omcc(:,id(1)),Tcc(:,id(1)),om2,T2*s,handkk);
+                Omcc(:,id(2)) = om;
+                Tcc(:,id(2)) = T;
             else
-                active_view(camlist(ii+1:end)) = 0;
+                active_cam(camlist(ii+1:end)) = 0;
                 break;
             end;
         end;
     end;
 end;
 
-active_imgviews(~active_view,:) = 0;
+active_imgviews(~active_cam,:) = 0;
 active_images = sum(active_imgviews,1)>1;
 ind_active = find(active_images);
 active_imgviews(:,~active_images) = 0;
+active_cam = any(active_imgviews,2)';
+ind_cam = find(active_cam);
+nc = length(ind_cam);
 
 % reconstruct the calibration rod in the main camera:
 npts = n_ima*np1D;
@@ -347,22 +349,20 @@ ind_active_views = find(active_imgviews(:)');
 xx = NaN(2,np1D,n_cam,n_ima);
 xx(:,:,ind_active_views) = reshape(cell2mat(x_cell(ind_active_views)),2,np1D,[]);
 xx = reshape(permute(xx,[1,2,4,3]),[2,npts,n_cam]);
-XX = compute_structure2(xx,Om_mat,T_mat,handcc,fc_mat,cc_mat,kc_mat,alpha_vec);
+XX = compute_structure2(xx,Omcc,Tcc,handcc,fc_mat,cc_mat,kc_mat,alpha_vec);
 Xo = XX(:,1:np1D:end);
 Xn = XX(:,np1D:np1D:end)-Xo;
 Xn = Xn./(ones(3,1)*sqrt(sum(Xn.^2,1)));
 thph = cartesian2spherical(Xn);
 thph = thph(2:3,:);
-Xp = reshape(permute(Xo+Xn.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
 
 if exist('Omcw','var'),
-    ind = find(active_view);
     Om2 = NaN(3,n_cam);
     T2 = Om2;
-    err = zeros(6,length(ind));
-    for kk = 1:length(ind),
-        pp = ind(kk);
-        [om,T] = compose_motion2(Omcw(:,idm),Tcw(:,idm),Om_mat(:,pp),T_mat(:,pp),handcc(pp));
+    err = zeros(6,nc);
+    for kk = 1:nc,
+        pp = ind_cam(kk);
+        [om,T] = compose_motion2(Omcw(:,idm),Tcw(:,idm),Omcc(:,pp),Tcc(:,pp),handcc(pp));
         Om2(:,pp) = om;
         T2(:,pp) = T;
         err(1:3,kk) = om-Omcw(:,pp);
@@ -384,20 +384,28 @@ fprintf(1,'Sparse Levenberg-Marquardt iterations: ');
 ncam16 = 16*n_cam;
 nima5 = 5*n_ima;
 nima3 = 3*n_ima;
-cam_param = reshape([fc_mat; cc_mat; alpha_vec; kc_mat; Om_mat; T_mat],ncam16,1);
-rod_param = reshape([Xo; thph],nima5,1);
+nima2 = 2*n_ima;
+npts3 = 3*npts;
+intr_update = reshape([fc_mat; cc_mat; alpha_vec; kc_mat; Omcc; Tcc],ncam16,1);
+extr_update = reshape([Xo; thph],nima5,1);
+init_param = [intr_update; extr_update];
 
-cam_update = cam_param;
-rod_update = rod_param;
+% initial error before bundle adjustment
+intr_param = init_param(1:ncam16);
+extr_param = init_param(ncam16+1:end);
+Xp = reshape(extr_param,5,n_ima);
+Xp = gen_1D_points(Xp(1:3,:),Xp(4:5,:),rodlen);
 ex = []; % Global error vector
-for pp=1:n_cam,
-    fc = fc_mat(:,pp);
-    cc = cc_mat(:,pp);
-    kc = kc_mat(:,pp);
-    alpha_c = alpha_vec(pp);
+for pp = ind_cam,
+    ii = (pp-1)*16;
+    % load camera parameters
+    fc = intr_param(ii+1 : ii+2);
+    cc = intr_param(ii+3 : ii+4);
+    alpha_c = intr_param(ii+5);
+    kc = intr_param(ii+6 : ii+10);
+    omwkk = intr_param(ii+11 : ii+13);
+    Twkk = intr_param(ii+14 : ii+16);
     handkk = handcc(pp);
-    omwkk = Om_mat(:, pp);
-    Twkk = T_mat(:, pp);
     active_view = active_imgviews(pp,:);
     kth = (find(active_view)-1)*n_cam+pp;
     x_kk = cell2mat(x_cell(kth));
@@ -409,6 +417,14 @@ end;
 err_std0 = std(ex,0,2);
 
 % return;
+
+% The following vector helps to select the variables to update:
+selected_invar = [est_fc_mat; ones(2,1)*center_optim_vec; est_alpha_vec; est_dist_mat; active_cam(ones(6,1),:)];
+selected_invar(2,:) = selected_invar(2,:).*(est_aspect_ratio_vec | ~est_fc_mat(1,:));
+selected_invar(11:16,idm) = 0;
+selected_exvar = reshape(active_images(ones(5,1),:),1,nima5);
+ind_va = find(selected_invar);
+ind_vb = find(selected_exvar);
 
 lamda = 0.001; % set an initial value of the damping factor for the LM
 updateJ = 1;
@@ -429,19 +445,19 @@ for iter = 1:MaxIter,
         eb = zeros(nima5,1);         % B'*ex
 
         % generate 1D points on rod
-        Xp = reshape(rod_param,5,n_ima);
+        Xp = reshape(extr_param,5,n_ima);
         Xo = Xp(1:3,:);
         thph = Xp(4:5,:);
         [Xp,dXpdXo,dXpdtp] = gen_1D_points(Xo,thph,rodlen);
-        for pp=1:n_cam,
+        for pp = ind_cam,
             ii = (pp-1)*16;
             % load camera parameters
-            fc = cam_param(ii+1 : ii+2);
-            cc = cam_param(ii+3 : ii+4);
-            alpha_c = cam_param(ii+5);
-            kc = cam_param(ii+6 : ii+10);
-            omwkk = cam_param(ii+11:ii+13);
-            Twkk = cam_param(ii+14:ii+16);
+            fc = intr_param(ii+1 : ii+2);
+            cc = intr_param(ii+3 : ii+4);
+            alpha_c = intr_param(ii+5);
+            kc = intr_param(ii+6 : ii+10);
+            omwkk = intr_param(ii+11 : ii+13);
+            Twkk = intr_param(ii+14 : ii+16);
             handkk = handcc(pp);
 
             % load pixel points
@@ -450,7 +466,6 @@ for iter = 1:MaxIter,
             x_kk = cell2mat(x_cell(kth));
 
             ind = reshape(repmat(active_view,[np1D,1]),1,npts);
-            idx = reshape(repmat(active_view,[3,1]),1,nima3);
             if est_aspect_ratio_vec(pp),
                 [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdXp] = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
             else
@@ -460,34 +475,20 @@ for iter = 1:MaxIter,
             ex_kk = x_kk - x;
             Akk = [dxdf dxdc dxdalpha dxdk dxdom dxdT];
 
+            na = sum(active_view);
+            nb = 2*na*np1D;
+            idx = reshape(repmat(ind,[3,1]),1,npts3);
+            id3 = reshape(repmat(active_view,[3,1]),1,nima3);
+            id2 = reshape(repmat(active_view,[2,1]),1,nima2);
+            id5 = reshape(repmat(active_view,[5,1]),1,nima5);
+            Bkk = reshape([reshape(dxdXp*dXpdXo(idx,id3),[nb,3,na]), reshape(dxdXp*dXpdtp(idx,id2),[nb,2,na])], nb,5*na);
 
-
-            Bkk = [dxdXp*dXpdXo(idx,:) dxdXp*dXpdtp(idx,:)];
-
-            U(ii+1 : ii+10, ii+1 : ii+10) = U(ii+1 : ii+10, ii+1 : ii+10) + sparse(Akk'*Akk);
-            ea(ii+1 : ii+10) = ea(ii+1 : ii+10) + Akk'*ex_kk(:);
-            % Check if this view is ill-conditioned:
-            if check_cond && (cond(Bkk)>thresh_cond),
-                fprintf(1,['\nWarning: (camera %d, image %d) ill-conditioned. This view is now set inactive. \n' ...
-                                '(note: to disactivate this option, set check_cond=0)\n'],pp,kk);
-                active_imgviews(pp,kk) = 0;
-                extr_param(jj+1 : jj+6) = NaN(6,1);
-            else
-                V(jj+1 : jj+6, jj+1 : jj+6) = sparse(Bkk'*Bkk);
-                W(ii+1 : ii+10, jj+1 : jj+6) = sparse(Akk'*Bkk);
-                eb(jj+1 : jj+6) = Bkk'*ex_kk(:);
-            end;
+            U(ii+1 : ii+16, ii+1 : ii+16) = Akk'*Akk;
+            ea(ii+1 : ii+16) = Akk'*ex_kk(:);
+            V(id5, id5) = V(id5, id5) + Bkk'*Bkk;
+            W(ii+1 : ii+16, id5) = Akk'*Bkk;
+            eb(id5) = eb(id5) + Bkk'*ex_kk(:);
         end;
-
-        active_view = active_imgviews(:)';
-        % The following vector helps to select the variables to update (for only active images):
-        selected_invar = [est_fc_mat; ones(2,1)*center_optim_vec; est_alpha_vec; est_dist_mat];
-        selected_invar(2,:) = selected_invar(2,:).*(est_aspect_ratio_vec | ~est_fc_mat(1,:));
-        selected_invar = selected_invar(:)';
-        selected_exvar = reshape(ones(6,1)*active_view,1,nview6);
-
-        ind_va = find(selected_invar);
-        ind_vb = find(selected_exvar);
         U = U(ind_va,ind_va);
         V = V(ind_vb,ind_vb);
         W = W(ind_va,ind_vb);
@@ -500,16 +501,18 @@ for iter = 1:MaxIter,
     Y = W/V_lm;
 
     intr_innov = (U_lm-Y*W')\(ea-Y*eb);              % da
-    extr_innov = V_lm\(eb-W'*intr_innov);             % db
+    extr_innov = V_lm\(eb-W'*intr_innov);            % db
 
     intr_update(ind_va) = intr_param(ind_va) + intr_innov;     % updated parameters
     extr_update(ind_vb) = extr_param(ind_vb) + extr_innov;
 
+    % generate 1D points on rod
+    Xp = reshape(extr_update,5,n_ima);
+    Xp = gen_1D_points(Xp(1:3,:),Xp(4:5,:),rodlen);
     % compute reprojection error vector
     ex = [];
-    for pp=1:n_cam,
-        ii = (pp-1)*10;
-        handkk = hand_list(pp);
+    for pp = ind_cam,
+        ii = (pp-1)*16;
         % New intrinsic parameters:
         if ~est_aspect_ratio_vec(pp) && all(est_fc_mat(:,pp)),
             intr_update(ii+2) = intr_update(ii+1);
@@ -518,24 +521,22 @@ for iter = 1:MaxIter,
         cc = intr_update(ii+3 : ii+4);
         alpha_c = intr_update(ii+5);
         kc = intr_update(ii+6 : ii+10);
+        handkk = handcc(pp);
+        omwkk = intr_update(ii+11 : ii+13);
+        Twkk = intr_update(ii+14 : ii+16);
         if center_optim_vec(pp) && (cc(1)<-.5 || cc(1)>imsize(1,pp)-.5 || cc(2)<-.5 || cc(2)>imsize(2,pp)-.5),
-            fprintf(1,'Warning: it appears that the principal point of camera %d cannot be estimated.\n', pp);
             center_optim_vec(pp) = 0;
-            cc = cc_mat(:,pp);
-            intr_update(ii+3 : ii+4) = cc;
+            fprintf(1,['Warning: it appears that the principal point of camera %d'...
+                           'cannot be estimated.\nPlease run this code again!\n'], pp);
+            return;
         end;
-        ind_active_views = find(active_imgviews(pp,:));
-        for kk = ind_active_views,
-            kth = (kk-1)*n_cam+pp;
-            jj = (kth-1)*6;
-            omwkk = extr_update(jj+1 : jj+3);
-            Twkk = extr_update(jj+4 : jj+6);
-            X_kk = X_cell{kth};
-            x_kk = x_cell{kth};
-            x = project_points_mirror2(X_kk,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
-            ex_kk = x_kk - x;
-            ex = [ex, ex_kk];
-        end;
+        active_view = active_imgviews(pp,:);
+        kth = (find(active_view)-1)*n_cam+pp;
+        x_kk = cell2mat(x_cell(kth));
+        ind = reshape(repmat(active_view,[np1D,1]),1,npts);
+        x = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
+        ex_kk = x_kk - x;
+        ex = [ex, ex_kk];
     end;
     ex = ex(:);
     ex2_update = dot(ex,ex);
@@ -555,64 +556,47 @@ for iter = 1:MaxIter,
     end;
 end;
 
-kk = find(active_images ~= any(active_imgviews,1));
-if ~isempty(kk),
-    desactivated_images = [desactivated_images kk];
-    fprintf(1,'WARNING: Cannot calibrate all camera views of image %d.\n',kk);
-    fprintf(1,'Set active_images(%d)=0;\n',kk);
-end;
-if ~isempty(desactivated_images),
-    fprintf(1,['List of images left desactivated: ' num2str(desactivated_images) '.\n' ] );
-end;
-active_images = any(active_imgviews,1);
-ind_active = find(active_images);
+% return;
 
 %%%--------------------------- Computation of the error of estimation:
 
 fprintf(1,'\nEstimation of uncertainties...');
 
 % Extraction of the paramters for computing the reprojection error:
-intr_param = reshape(intr_param, 10, n_cam);
+intr_param = reshape(intr_param, 16, n_cam);
 fc_mat = intr_param(1:2,:);
 cc_mat = intr_param(3:4,:);
 alpha_vec = intr_param(5,:);
 kc_mat = intr_param(6:10,:);
+Omcc = extr_param(11:13,:);
+Tcc = extr_param(14:16,:);
 
-extr_param = reshape(extr_param, 6, n_view);
-Omw_mat = extr_param(1:3,:);
-Tw_mat = extr_param(4:6,:);
+extr_param = reshape(extr_param, 5, n_ima);
+Xo = extr_param(1:3,:);
+thph = extr_param(4:5,:);
+Xp = gen_1D_points(Xo,thph,rodlen);
 
-% Reproject the patterns on the images, and compute the pixel errors:
-y_cell = cell(1, n_view);  % Reprojected points
-ex_cell = y_cell;             % Reprojected error
-H_cell = y_cell;
+% compute the reprojected errors
+y_cam = cell(1, n_cam);  % Reprojected points
+ex_cam = y_cam;          % Reprojected error
 err_cam = zeros(2,n_cam);
 ex = [];
-for pp = 1:n_cam,
+for pp = ind_cam,
     fc = fc_mat(:,pp);
     cc = cc_mat(:,pp);
     alpha_c = alpha_vec(pp);
     kc = kc_mat(:,pp);
-    handkk = hand_list(pp);
-    % Calibration matrix:
-    KK = [fc(1) fc(1)*alpha_c cc(1);0 fc(2) cc(2); 0 0 1];
-    ind_active_views = find(active_imgviews(pp,:));
-    for kk = ind_active_views,
-        kth = (kk-1)*n_cam+pp;
-        omwkk = Omw_mat(:, kth);
-        Twkk = Tw_mat(:, kth);
-        X_kk = X_cell{kth};
-        x_kk = x_cell{kth};
-        y_kk = project_points_mirror2(X_kk,omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
-        ex_kk = x_kk-y_kk;
-        ex = [ex, ex_kk];
-        y_cell{kth} = y_kk;
-        ex_cell{kth} = ex_kk;
-        Rwkk = rodrigues(omwkk);
-        Hkk = KK * [Rwkk(:,1) Rwkk(:,2) Twkk];
-        H_cell{kth} = Hkk / Hkk(3,3);
-    end;
-    err_cam(:,pp) = std(cell2mat(ex_cell(pp:n_cam:end)),0,2);
+    handkk = handcc(pp);
+    active_view = active_imgviews(pp,:);
+    kth = (find(active_view)-1)*n_cam+pp;
+    x_kk = cell2mat(x_cell(kth));
+    ind = reshape(repmat(active_view,[np1D,1]),1,npts);
+    y_kk = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
+    ex_kk = x_kk - y_kk;
+    ex = [ex, ex_kk];
+    y_cam{pp} = y_kk;
+    ex_cam{pp} = ex_kk;
+    err_cam(:,pp) = std(ex_kk,0,2);
 end;
 
 err_std = std(ex,0,2);
@@ -624,29 +608,31 @@ JJ2 = [U, W; W', V];    % JJ2 = JJ'*JJ
 JJ2_inv = speye(size(JJ2))/JJ2;
 
 % Extraction of the final intrinsic paramaters:
-param_error = zeros(ncam10,1);           % take value as perfect if not optimized (no error).
+param_error = zeros(ncam16,1);           % take value as perfect if not optimized (no error).
 nva = length(ind_va);
 param_error(ind_va) = 3*sqrt(abs(full(diag(JJ2_inv(1:nva,1:nva)))))*sigma_x;     % 3 sigma principle
-param_error = reshape(param_error,10,n_cam);
-ind_valid = find(~est_aspect_ratio_vec & all(est_fc_mat,1));
-param_error(2,ind_valid) = param_error(1,ind_valid);
+param_error = reshape(param_error,16,n_cam);
+ind = find(~est_aspect_ratio_vec & all(est_fc_mat,1));
+param_error(2,ind) = param_error(1,ind);
 
 fc_mat_error = param_error(1:2,:);
 cc_mat_error = param_error(3:4,:);
 alpha_vec_error = param_error(5,:);
 kc_mat_error = param_error(6:10,:);
+Omcc_error = param_error(11:13,:);
+Tcc_error = param_error(14:16,:);
 
 % Extraction of the final extrinsic paramaters:
-param_error = zeros(nview6,1);           % take value as perfect if not optimized (no error).
+param_error = zeros(nima5,1);
 nvb = length(ind_vb);
 param_error(ind_vb) = 3*sqrt(abs(full(diag(JJ2_inv(nva+1:nva+nvb, nva+1:nva+nvb)))))*sigma_x;     % 3 sigma principle
-param_error = reshape(param_error,6,n_view);
-Omw_mat_error = param_error(1:3,:);
-Tw_mat_error = param_error(4:6,:);
+param_error = reshape(param_error,5,n_ima);
+Xo_error = param_error(1:3,:);
+thph_error = param_error(4:5,:);
 
 fprintf(1,'Done with the uncertainties!\n');
 
-for pp = 1:n_cam,
+for pp = ind_cam,
     fc = fc_mat(:,pp);
     cc = cc_mat(:,pp);
     kc = kc_mat(:,pp);
