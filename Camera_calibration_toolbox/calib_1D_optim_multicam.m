@@ -477,11 +477,17 @@ for iter = 1:MaxIter,
 
             na = sum(active_view);
             nb = 2*na*np1D;
+            Bkk = sparse([],[],[],nb,5*na);
             idx = reshape(repmat(ind,[3,1]),1,npts3);
             id3 = reshape(repmat(active_view,[3,1]),1,nima3);
             id2 = reshape(repmat(active_view,[2,1]),1,nima2);
             id5 = reshape(repmat(active_view,[5,1]),1,nima5);
-            Bkk = reshape([reshape(dxdXp*dXpdXo(idx,id3),[nb,3,na]), reshape(dxdXp*dXpdtp(idx,id2),[nb,2,na])], nb,5*na);
+            dxdXo = dxdXp*dXpdXo(idx,id3);
+            dxdtp = dxdXp*dXpdtp(idx,id2);
+            for jj = 1:na,
+                Bkk(:,(jj-1)*5+1:jj*5) = [dxdXo(:,(jj-1)*3+1:jj*3),dxdtp(:,(jj-1)*2+1:jj*2)];
+            end;
+            % Bkk = reshape([reshape(dxdXp*dXpdXo(idx,id3),[nb,3,na]), reshape(dxdXp*dXpdtp(idx,id2),[nb,2,na])], nb,5*na);
 
             U(ii+1 : ii+16, ii+1 : ii+16) = Akk'*Akk;
             ea(ii+1 : ii+16) = Akk'*ex_kk(:);
@@ -555,8 +561,6 @@ for iter = 1:MaxIter,
         break;
     end;
 end;
-
-% return;
 
 %%%--------------------------- Computation of the error of estimation:
 
@@ -632,213 +636,9 @@ thph_error = param_error(4:5,:);
 
 fprintf(1,'Done with the uncertainties!\n');
 
-for pp = ind_cam,
-    fc = fc_mat(:,pp);
-    cc = cc_mat(:,pp);
-    kc = kc_mat(:,pp);
-    alpha_c = alpha_vec(pp);
-    fc_error = fc_mat_error(:,pp);
-    cc_error = cc_mat_error(:,pp);
-    alpha_c_error =  alpha_vec_error(pp);
-    kc_error = kc_mat_error(:,pp);
-    fprintf(1,'\n\nCalibration results of camera %d after optimization (with uncertainties):\n\n',pp);
-    fprintf(1,'Focal Length:      fc = [%3.5f, %3.5f] ? [%3.5f, %3.5f]\n',[fc;fc_error]);
-    fprintf(1,'Principal point:   cc = [%3.5f, %3.5f] ? [%3.5f, %3.5f]\n',[cc;cc_error]);
-    fprintf(1,'Skew:         alpha_c = %3.5f ? %3.5f => Skew angle = %3.5f ? %3.5f degrees\n', ...
-        [alpha_c; alpha_c_error; 90-atan(alpha_c)*180/pi; atan(alpha_c_error)*180/pi]);
-    fprintf(1,'Distortion:          kc = [%3.5f, %3.5f, %3.5f, %3.5f, %3.5f] ? [%3.5f, %3.5f, %3.5f, %3.5f, %3.5f]\n',[kc;kc_error]);
-    fprintf(1,'Pixel error:        err = [%3.5f, %3.5f]\n\n',err_cam(:,pp));
-    fprintf(1,'Note: The pixel error are approximately three times the standard deviations (for reference).\n\n\n');
-
-    % Some recommendations to the user to reject some of the difficult unkowns....
-    alpha_c_min = alpha_c - alpha_c_error/2;
-    alpha_c_max = alpha_c + alpha_c_error/2;
-    if (alpha_c_min < 0) && (alpha_c_max > 0),
-        fprintf(1,'Note: the skew coefficient of camera %d is found to be equal to zero (within its uncertainty).\n', pp);
-        fprintf(1,'Setting est_alpha_vec(%d)=0;\n\n',pp);
-        est_alpha_vec(pp)=0;
-    end;
-    kc_min = kc - kc_error/2;
-    kc_max = kc + kc_error/2;
-    prob_kc = (kc_min < 0) & (kc_max > 0);
-    if ~(prob_kc(3) && prob_kc(4)),
-        prob_kc(3:4) = [0;0];
-    end;
-    est_dist = est_dist_mat(:,pp);
-    if any(prob_kc),
-        est_dist = est_dist & ~prob_kc;
-        fprintf(1,'Note: Some distortion coefficients of camera %d are found equal to zero (within their uncertainties).\n',pp);
-        fprintf(1,'Setting est_dist_mat(:,%d)=[%d;%d;%d;%d;%d];\n\n',pp,est_dist);
-        est_dist_mat(:,pp) = est_dist;
-    end;
-end;
-fprintf(1,['For accurate and stable error estimates, it is recommended to run Calibration twice.\n' ...
-    'You may using projection to recompute the conners to improve the quality of your data!\n\n']);
+return;
 
 
-%% Refine the camera parameters if more than one camera is available.
-% First,determine the relative orientation and position of each view to the first one.
-% Then use intrinsic parameters, relations between cameras, and the extrinsic parameters
-% of the first view as the initial value for the refinement.
-
-refine_multicam = 0;
-if n_cam>1,
-    fprintf(1,['More than one camera detected, do you want to trigger the multicamera refinement now?\n'...
-                   'If you have already run the Calibration twice, it is recommended to trigger refinement!\n']);
-    refine_multicam = input('Refine the multicamera calibration or not? ([]=yes, other=no) ','s');
-    refine_multicam = isempty(refine_multicam);
-end;
-if ~refine_multicam,
-    return;
-end;
-
-% Initialization of the extrinsic parameters for multi-view refinement:
-hand1 = hand_list(1);
-handcc = hand1*hand_list;       % handcc is the handedness of every camera frame wrt camera 1
-Omcw = NaN(3, n_ima);            % Omcw and Tcw are the rotation and translation of camera 1 wrt every world frame
-Tcw = NaN(3, n_ima);
-
-Omcc = NaN(3, n_cam);           % Omcc and Tcc are the rotation and translation of every camera wrt camera 1
-Omcc(:,1) = zeros(3,1);
-Tcc = NaN(3, n_cam);
-Tcc(:,1) = zeros(3,1);
-
-Omcw_cell = cell(1,n_ima);
-Tcw_cell = Omcw_cell;
-Omcc_cell = cell(1, n_cam);      % Omcc_cell, Tcc_cell store transformation of every camera wrt camera 1
-Tcc_cell = Omcc_cell;
-ind_active_views = find(active_imgviews(1,:));
-
-for kk = ind_active_views,
-    jj = (kk-1)*n_cam+1;
-    omw1 = Omw_mat(:, jj);              %   Rc1= rodrigues(omw1);
-    Tw1= Tw_mat(:, jj);
-    Rw1t = rodrigues(-omw1);
-    Omcw(:, kk) = omw1;
-    Tcw(:, kk) = Tw1;
-    active_view = find(active_imgviews(2:end, kk)')+1;
-    for pp = active_view,
-        kth = jj+pp-1;
-        omwkk = Omw_mat(:, kth);
-        Twkk = Tw_mat(:, kth);
-        handkk = handcc(pp);
-        [omck, Tck] = compose_motion2(-omw1,-Rw1t*Tw1,omwkk,Twkk,handkk);  %  inverse composition
-        Omcc_cell{pp} = [Omcc_cell{pp}, omck];
-        Tcc_cell{pp} = [Tcc_cell{pp}, Tck];
-    end;
-end;
-
-% relative deviation checking of close rotation and translation of each camera wrt the 1st one.
-bigeps = 1e-2;
-extrinsic_deviation = zeros(1,n_cam);
-for pp=2:n_cam,
-    omck = Omcc_cell{pp};
-    Tck = Tcc_cell{pp};
-    n = size(omck,2);
-    switch n,
-        case 0,
-            fprintf(1,'No transformation of camera %d wrt camera 1 found!\n',pp);
-            active_imgviews(pp,:) = 0;
-            continue;
-        case 1,
-            Omcc(:, pp) = omck;
-            Tcc(:, pp) = Tck;
-        otherwise,
-            % transform axis angle to quaternion to compute mean rotation
-            Qck = trans_quat_axis(omck);
-            Qc1 = Qck(:,1);
-            for i = 2:n,
-                Qcki = Qck(:,i);
-                if sum(Qcki.*Qc1)<0,
-                    Qck(:,i) = -Qcki;
-                end;
-            end;
-            Q = quatmean(Qck,ones(1,n)/n);        % mean of quaternions
-            if sum(Q.*Qc1)<0,
-                Q = -Q;
-            end;
-            Tcc(:, pp) = mean(Tck,2);        % mean of translation
-            Omcc(:, pp) = trans_quat_axis(Q);
-            % relative deviation of orientation and position of cameras
-            deviation = max(max(sqrt(sum((Qck-Q(:,ones(1,n))).^2)),[],2), max(sqrt(sum((Tck-Tcc(:,pp)*ones(1,n)).^2)),[],2)/norm(Tcc(:,pp)));
-            fprintf(1,'For camera %d, relative extrinsic deviation = %1.0e;\n', pp, deviation);
-            if deviation>bigeps,
-                fprintf(1,'The value is larger than %1.0e, please stop and check variables ''Qck'' and ''Tck''.\n', bigeps);
-                flag = input('Abort calibration or not? ([]=yes, other=no) ','s');
-                if isempty(flag),
-                    fprintf(1,'Program terminated!\n');
-                    return;
-                end;
-            end;
-            extrinsic_deviation(pp) = deviation;
-    end;
-end;
-active_images = any(active_imgviews,1);
-ind_active = find(active_images);
-
-% If Xk=Rk*Hk*Xw+Tk, Xk=Rk1*Hk1*X1+Tk1, where Hk1=Hk*H1
-% then X1=Hk1*Rk1'*Rk*Hk1*H1*Xw+Hk1*Rk1'*(Tk-Tk1)
-% Given om=[n1;n2;n3], Hzkk = diag([1,1, -1]), if Rt=Hzkk*rodrigues(om)*Hzkk,
-% then we have omt = rodrigues(Rt) = [-n1; -n2; n3]
-ind_active_views = find(~active_imgviews(1,:) & active_images);
-for kk = ind_active_views,
-    jj = (kk-1)*n_cam;
-    active_view = find(active_imgviews(2:end, kk)')+1;
-    for pp = active_view,
-        kth = jj+pp;
-        Rw1t = rodrigues(-Omcc(:,pp));
-        Tw1 = Rw1t*(Tw_mat(:,kth)-Tcc(:,pp));
-        omw1 = rodrigues(Rw1t*rodrigues(Omw_mat(:, kth)));
-        if handcc(pp)~=1,
-            omw1(1:2) = -omw1(1:2);
-            Tw1(3) = -Tw1(3);
-        end;
-        Omcw_cell{kk} = [Omcw_cell{kk}, omw1];
-        Tcw_cell{kk} = [Tcw_cell{kk}, Tw1];
-    end;
-    omw1 = Omcw_cell{kk};
-    Tw1 = Tcw_cell{kk};
-    n = size(omw1,2);
-    switch n,
-        case 0,
-            fprintf(1,'All camera views of image %d are inactive!\nSet the image inactive!\n',kk);
-            active_imgviews(:,kk) = 0;
-            active_images(kk) = 0;
-            continue;
-        case 1,
-            Omcw(:, kk) = omw1;
-            Tcw(:, kk) = Tw1;
-        otherwise,
-            % transform axis angle to quaternion to compute mean rotation
-            Qck = trans_quat_axis(omw1);
-            Qc1 = Qck(:,1);
-            for i = 2:n,
-                Qcki = Qck(:,i);
-                if sum(Qcki.*Qc1)<0,
-                    Qck(:,i) = -Qcki;
-                end;
-            end;
-            Q = quatmean(Qck,ones(1,n)/n);        % mean of quaternions
-            if sum(Q.*Qc1)<0,
-                Q = -Q;
-            end;
-            Tcw(:, kk) = mean(Tw1,2);        % mean of translation
-            Omcw(:, kk) = trans_quat_axis(Q);
-            % relative deviation of orientation and position of cameras
-            deviation = max(max(sqrt(sum((Qck-Q(:,ones(1,n))).^2)),[],2), max(sqrt(sum((Tw1-Tcw(:,kk)*ones(1,n)).^2)),[],2)/norm(Tcw(:,kk)));
-            if deviation>bigeps,
-                fprintf(1,'The deviation value is larger than %1.0e, please stop and check variables ''Qck'' and ''Tw1''.\n', bigeps);
-                flag = input('Abort calibration or not? ([]=yes, other=no) ','s');
-                if isempty(flag),
-                    fprintf(1,'Program terminated!\n');
-                    return;
-                end;
-            end;
-            % max deviation of camera 1's (Q,t) wrt world frame
-            extrinsic_deviation(1) = max(extrinsic_deviation(1),deviation);
-    end;
-end;
-ind_active = find(active_images);
 
 for count=1:2,
     fprintf(1,'\nRefine extrinsic parameters: %2d\n', count);
@@ -855,104 +655,6 @@ for count=1:3,
     fprintf(1,'\nRefine intrinsic and extrinsic parameters: %2d\n', count);
      optim_multicams;
 end;
-flag = input('Change some estimation settings to further refine parameters? ([]=no, other=yes)','s');
-if ~isempty(flag),
-    fprintf(1,'\nCarefully choose to change estimation settings, especially distortion settings!\n');
-    for pp = 1:n_cam,
-        if ~isequal(est_fc_mat(:,pp),[1;1]),
-            fprintf(1,'The focal length of camera %d is not fully estimized.\n',pp);
-            flag = input('Do you want to change it? ([]=no, other=yes)','s');
-            if ~isempty(flag),
-                est_fc_mat(:,pp) = [1;1];
-            end;
-        end;
-    end;
-
-    if ~isequal(est_aspect_ratio_vec, ones(1,n_cam)),
-        fprintf(1,'The pixel aspect ratio of all cameras are not fully estimated.\n');
-        flag = input('Do you want to change it? ([]=no, other=yes)','s');
-        flag = ~isempty(flag);
-        while flag,
-            est_aspect_ratio_vec = input(['est_aspect_ratio_vec = ([] = [' num2str(ones(1,n_cam)) '])']);
-            if isempty(est_aspect_ratio_vec),
-                est_aspect_ratio_vec = ones(1,n_cam);
-                flag = 0;
-            else
-                est_aspect_ratio_vec = est_aspect_ratio_vec(:)';
-                flag = length(est_aspect_ratio_vec)~=n_cam;
-                if flag,
-                    fprintf(1,'\nUnexpected input, please input again!\n');
-                end;
-            end;
-        end;
-    end;
-
-    if ~isequal(center_optim_vec, ones(1,n_cam)),
-        fprintf(1,'The principal point of all cameras are not fully estimated.\n');
-        flag = input('Do you want to change it? ([]=no, other=yes)','s');
-        flag = ~isempty(flag);
-        while flag,
-            center_optim_vec = input(['center_optim_vec = ([] = [' num2str(ones(1,n_cam)) '])']);
-            if isempty(center_optim_vec),
-                center_optim_vec = ones(1,n_cam);
-                flag = 0;
-            else
-                center_optim_vec = center_optim_vec(:)';
-                flag = length(center_optim_vec)~=n_cam;
-                if flag,
-                    fprintf(1,'\nUnexpected input, please input again!\n');
-                end;
-            end;
-        end;
-    end;
-
-    if ~isequal(est_alpha_vec, ones(1,n_cam)),
-        fprintf(1,'The pixel skew of all cameras are not fully estimated.\n');
-        flag = input('Do you want to change it? ([]=no, other=yes)','s');
-        flag = ~isempty(flag);
-        while flag,
-            est_alpha_vec = input(['est_alpha_vec = ([] = [' num2str(ones(1,n_cam)) '])']);
-            if isempty(est_alpha_vec),
-                est_alpha_vec = ones(1,n_cam);
-                flag = 0;
-            else
-                est_alpha_vec = est_alpha_vec(:)';
-                flag = length(est_alpha_vec)~=n_cam;
-                if flag,
-                    fprintf(1,'\nUnexpected input, please input again!\n');
-                end;
-            end;
-        end;
-    end;
-
-    for pp = 1:n_cam,
-        est_dist = est_dist_mat(:,pp);
-        if ~norm(est_dist),
-            fprintf(1,'\nThe distortion coefficients of camera %d are not estimized.\n',pp);
-            flag = input('Do you want to estimate it? ([]=no, other=yes with cautiousness)','s');
-            if ~isempty(flag),
-                est_dist = input(['est_dist [k1; k2; k3; k4; k5] of camera ' num2str(pp) ': ([] = [1;1;1;1;0])])']);
-                if isempty(est_dist),
-                    est_dist = [1;1;1;1;0];  % by default do not estimate the 6th radial distortion
-                end;
-                est_dist = est_dist(:);
-            end;
-            n = length(est_dist);
-            if n<5,
-                est_dist = [est_dist;zeros(5-n,1)];
-            elseif n>5,
-                est_dist = est_dist(1:5);
-            end;
-            fprintf(1,['\nest_dist of camera ' num2str(pp) ': [%d; %d; %d; %d; %d].\n'], est_dist);
-            est_dist_mat(:,pp) = est_dist;
-        end;
-    end;
-
-    for count=1:2,
-        fprintf(1,'\nFurther refine intrinsic and extrinsic parameters: %2d\n', count);
-        optim_multicams;
-    end;
-    fprintf(1,'\nRefine extrinsic parameters in the end:\n');
-    optim_multicams_extrinsic;
-end;
+fprintf(1,'\nRefine extrinsic parameters in the end:\n');
+optim_multicams_extrinsic;
 disp('Done.');
