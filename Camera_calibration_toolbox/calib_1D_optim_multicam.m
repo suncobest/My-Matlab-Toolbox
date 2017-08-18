@@ -31,7 +31,7 @@ if ~exist('x_cell','var') || ~exist('imsize','var'),
         flag = input('Load the simulation data or not? ([]=yes, other=no) ','s');
         if isempty(flag),
             load('multicam_simu_data.mat');
-            % clear Xrod Xori Xdir fc_mat cc_mat kc_mat alpha_vec Omcw Tcw;
+            clear Xrod Xori Xdir fc_mat cc_mat kc_mat alpha_vec Omcw Tcw;
         end;
     else
         fprintf(1,'\nThere is no data required for calibration!\n');
@@ -39,25 +39,12 @@ if ~exist('x_cell','var') || ~exist('imsize','var'),
     end;
 end;
 
-for kk = ind_active,
-    if all(active_imgviews(:,kk)==0),
-        fprintf(1,'No camera captured points in frame %d, The image is now set inactive!\n',kk);
-    end;
-end;
 active_images = sum(active_imgviews,1)>1;
 ind_active = find(active_images);
 active_imgviews(:,~active_images) = 0;
 
 if ~exist('MaxIter','var'),
     MaxIter = 30; % Maximum number of iterations in the main LM algorithm
-end;
-
-if ~exist('check_cond','var'),
-    check_cond = 1;
-end;
-
-if ~exist('desactivated_images','var'),
-    desactivated_images = [];
 end;
 
 if ~exist('est_alpha_vec','var'),
@@ -218,12 +205,12 @@ fprintf(1,'\n');
 if ~exist('fc_mat','var'),
     flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
     if isempty(flag),
-        FOV_angle = 90; %field of view in degrees: for 135 camera, 90 degree of FOV is about 18 mm focal length。
+        FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal length。
         fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
         fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
     else
         fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
-        intrinsic_1D_rot_multicam;
+        intrinsic_1D_rotation;
     end;
 end;
 
@@ -251,7 +238,7 @@ else
 end;
 
 if ~exist('alpha_vec','var'),
-    fprintf(1,'Initialization of all camera image skew to zero.\n');
+    fprintf(1,'\nInitialization of all camera image skew to zero.\n');
     alpha_vec = zeros(1,n_cam);
 end;
 
@@ -264,11 +251,8 @@ alpha_vec(est_alpha_vec==0) = 0;
 % set to zero the distortion coefficients that are not estimated
 kc_mat = kc_mat .* est_dist_mat;
 
-% Conditioning threshold for view rejection
-thresh_cond = 1e4;
 % threshold to terminate the main LM iteration
-gradeps = eps*1e8;
-
+gradeps = 1e-5;
 
 %%% calculate the shortest path from all cameras to selected camera.
 A_cam = zeros(n_cam);   % adjacency matrix of all camera nodes
