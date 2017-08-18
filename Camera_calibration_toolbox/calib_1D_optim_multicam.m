@@ -426,6 +426,7 @@ selected_exvar = reshape(active_images(ones(5,1),:),1,nima5);
 ind_va = find(selected_invar);
 ind_vb = find(selected_exvar);
 
+tstart = tic;
 lamda = 0.001; % set an initial value of the damping factor for the LM
 updateJ = 1;
 ex = ex(:);
@@ -564,7 +565,7 @@ end;
 
 %%%--------------------------- Computation of the error of estimation:
 
-fprintf(1,'\nEstimation of uncertainties...');
+fprintf(1,'\nEstimation of uncertainties...\n');
 
 % Extraction of the paramters for computing the reprojection error:
 intr_param = reshape(intr_param, 16, n_cam);
@@ -572,8 +573,8 @@ fc_mat = intr_param(1:2,:);
 cc_mat = intr_param(3:4,:);
 alpha_vec = intr_param(5,:);
 kc_mat = intr_param(6:10,:);
-Omcc = extr_param(11:13,:);
-Tcc = extr_param(14:16,:);
+Omcc = intr_param(11:13,:);
+Tcc = intr_param(14:16,:);
 
 extr_param = reshape(extr_param, 5, n_ima);
 Xo = extr_param(1:3,:);
@@ -591,6 +592,8 @@ for pp = ind_cam,
     alpha_c = alpha_vec(pp);
     kc = kc_mat(:,pp);
     handkk = handcc(pp);
+    omwkk = Omcc(:,pp);
+    Twkk = Tcc(:,pp);
     active_view = active_imgviews(pp,:);
     kth = (find(active_view)-1)*n_cam+pp;
     x_kk = cell2mat(x_cell(kth));
@@ -605,6 +608,9 @@ end;
 
 err_std = std(ex,0,2);
 sigma_x = std(ex(:));
+
+telapsed = toc(tstart);
+return;
 
 % Compute the the standard deviation of parameters from std(ex):
 % ex = X-f(P),  cov(param,param) = inv((JJ'* inv(cov(ex,ex))* JJ))
@@ -640,10 +646,8 @@ return;
 
 
 
-for count=1:2,
-    fprintf(1,'\nRefine extrinsic parameters: %2d\n', count);
-    optim_multicams_extrinsic;
-end;
+fprintf(1,'\nRefine extrinsic parameters: %2d\n', count);
+optim_multicams_extrinsic;
 
 flag = input('Further refine intrinsic parameters or not? ([]=no, other=yes)','s');
 if isempty(flag)
@@ -651,10 +655,8 @@ if isempty(flag)
     return;
 end;
 
-for count=1:3,
-    fprintf(1,'\nRefine intrinsic and extrinsic parameters: %2d\n', count);
-     optim_multicams;
-end;
+fprintf(1,'\nRefine intrinsic and extrinsic parameters: %2d\n', count);
+optim_multicams;
 fprintf(1,'\nRefine extrinsic parameters in the end:\n');
 optim_multicams_extrinsic;
 disp('Done.');
