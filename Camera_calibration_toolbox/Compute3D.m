@@ -15,7 +15,7 @@ function [Xc,Xp] = Compute3D(xc,xp,R,T,fc,fp,cc,cp,kc,kp,alpha_c,alpha_p)
 % alpha_c, alpha_p: skew coefficients for camera and projector
 %
 % The set R,T,fc,fp,cc,cp and kc comes from the calibration.
- 
+
 % Intel Corporation - Dec. 2003
 % (c) Jean-Yves Bouguet
 
@@ -48,23 +48,23 @@ for kk = 1:N_rep,
     else
         Tp = T; % The new technique for calibration (using stripes only)
     end;
-	
+
 	% Triangulation:
 	D1 = [-xc(1,:);xc(1,:).*xp(1,:);-xc(2,:);xc(2,:).*xp(1,:);-ones(1,Np);xp(1,:)];
 	D2 = R2(:)*ones(1,Np);
-	
+
 	D = sum(D1.*D2);
 	N1 = [-ones(1,Np);xp(1,:)];
 	N2 = -sum(N1.*(Tp*ones(1,Np)));
 	Z = N2./D;
 	Xc = (ones(3,1)*Z).*[xc;ones(1,Np)];
-	
+
    % reproject on the projetor view, and apply distortion...
    Xp = R*Xc + T*ones(1,Np);
    xp_v = [Xp(1,:)./Xp(3,:); Xp(2,:)./Xp(3,:)];
    xp_v(1,:) = xp_v(1,:) + alpha_p * xp_v(2,:);
    xp_dist = apply_distortion(xp_v,kp);
-   
+
    %norm(xp_dist(1,:) - xp_save)
    xp_dist(1,:) = xp_save;
    xp_v = comp_distortion(xp_dist,kp);

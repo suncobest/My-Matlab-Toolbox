@@ -24,7 +24,7 @@ function [H,Hnorm,inv_Hnorm] = compute_homography(m,M);
 %
 %Important functions called within that program:
 %
-%comp_distortion_oulu: Undistorts pixel coordinates.
+%comp_distortion: Undistorts pixel coordinates.
 %
 %compute_homography.m: Computes the planar homography between points on the grid in 3D, and the image plane.
 %

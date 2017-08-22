@@ -1,16 +1,12 @@
 % intrinsic and extrinsic parameters
-intr_update = reshape([fc_mat; cc_mat; alpha_vec; kc_mat; Omcc; Tcc],ncam16,1);
+intr_update = reshape([Omcc; Tcc],ncam6,1);
 extr_update = reshape([Xo; thph],nima5,1);
-if ~exist('init_param','var') || length(init_param) ~= ncam16+nima5,
-    init_param = [intr_update; extr_update];
-end;
 intr_param = init_update;
 extr_param = extr_update;
 
 % The following vector helps to select the variables to update:
-selected_invar = [est_fc_mat; ones(2,1)*center_optim_vec; est_alpha_vec; est_dist_mat; active_cam(ones(6,1),:)];
-selected_invar(2,:) = selected_invar(2,:).*(est_aspect_ratio_vec | ~est_fc_mat(1,:));
-selected_invar(11:16,idm) = 0;
+selected_invar = active_cam(ones(6,1),:);
+selected_invar(:,idm) = 0;
 selected_exvar = reshape(active_images(ones(5,1),:),1,nima5);
 ind_va = find(selected_invar);
 ind_vb = find(selected_exvar);
@@ -22,9 +18,9 @@ ex = []; % Global error vector
 for pp = ind_cam,
     ii = (pp-1)*16;
     % load camera parameters
-    fc = intr_param(ii+1 : ii+2);
-    cc = intr_param(ii+3 : ii+4);
-    alpha_c = intr_param(ii+5);
+    fc = fc_mat(:,pp);
+    cc = cc_mat(:,pp);
+    alpha_c = alpha_vec(pp);
     kc = intr_param(ii+6 : ii+10);
     omwkk = intr_param(ii+11 : ii+13);
     Twkk = intr_param(ii+14 : ii+16);

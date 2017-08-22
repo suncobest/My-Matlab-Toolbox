@@ -6,7 +6,7 @@ function [fc,omc,Tc] = focus_extrinsic_estimate(grid_pts,Xgrid,cc,f_ini,k_dist,t
 % cc is the principal point. Set it to the center of image if you dont't know it.
 % fc is the focal length being estimated. omc is the rotation of world plane, Tc is the translation.
 %
-% First estimate focus without distortion,then run iteration to compensate for distortion. 
+% First estimate focus without distortion,then run iteration to compensate for distortion.
 % The results will be less accurate when distortion is large.
 %
 % See also focus_extrinsic_estimate2, center_extrinsic_estimate, Distor2Calib.
@@ -78,7 +78,7 @@ H = diag([1/fc(1),1/fc(2),1]) * Sub_cc * H;
 % h1'*diag([1/fc1^2,1/fc2^2,1])*h1 - h2'*diag([1/fc1^2,1/fc2^2,1])*h2 = (h1+h2)'*diag([1/fc1^2,1/fc2^2,1])*(h1-h2) = 0
 % so h1+h2 and h1-h2 are conjugate points
 
-invZc = mean([norm(H(:,1));norm(H(:,2))]);  
+invZc = mean([norm(H(:,1));norm(H(:,2))]);
 H = H/invZc;
 
 V_hori_pix = H(:,1);                  % h1
@@ -115,44 +115,39 @@ H = diag([1/f(1),1/f(2),1])*H;
 fc = fc.*f;
 
 if flag,
-    
     grid_centered = [grid_pts(1,:) - cc(1);grid_pts(2,:) - cc(2)];
-    
     for i=1:N_iter,
-        
         % Subtract principal point, and divide by the focal length:
         x_distort = [grid_centered(1,:)/fc(1); grid_centered(2,:)/fc(2)];
         x_undist = comp_distortion(x_distort,k_dist);
         H = compute_homography_lm(x_undist,Xgrid);                              % 多次迭代后H=s*[r1,r2,T]
-        
+
         invZc = mean([norm(H(:,1));norm(H(:,2))]);
         H = H/invZc;
-        
+
         V_hori_pix = H(:,1);                  % h1
-        V_vert_pix = H(:,2);                  % h2     
+        V_vert_pix = H(:,2);                  % h2
         V_diag1_pix = H(:,1)+H(:,2);          % h1+h2
         V_diag2_pix = H(:,1)-H(:,2);          % h1-h2
-        
-       
+
         a1 = V_hori_pix(1);
         b1 = V_hori_pix(2);
         c1 = V_hori_pix(3);
-        
+
         a2 = V_vert_pix(1);
         b2 = V_vert_pix(2);
         c2 = V_vert_pix(3);
-        
+
         a3 = V_diag1_pix(1);
         b3 = V_diag1_pix(2);
         c3 = V_diag1_pix(3);
-        
+
         a4 = V_diag2_pix(1);
         b4 = V_diag2_pix(2);
         c4 = V_diag2_pix(3);
-        
+
         A = [a1*a2  b1*b2; a3*a4  b3*b4];
         b = -[c1*c2;c3*c4];
-        
         if two_focal,
             f = sqrt(abs(1./(A\b)));                            % 多次迭代后f=[1;1]
         else
@@ -176,7 +171,6 @@ omc = rodrigues(R);
 Tc = H(:,3);
 
 return;
-
 
 
 
@@ -222,7 +216,7 @@ axis tight
 
 [fc,omc,Tc] = focus_extrinsic_estimate(y,X0,[K(7);K(8)],1,0,1);                      % do not consider distortion
 [fc1,omc1,Tc1] = focus_extrinsic_estimate(y,X0,[K(7);K(8)],1,kdist,1);           % iterate giving the distortion
-[fc2,omc2,Tc2] = focus_extrinsic_estimate2(y,X0,[K(7);K(8)],1,kdist,1);    
+[fc2,omc2,Tc2] = focus_extrinsic_estimate2(y,X0,[K(7);K(8)],1,kdist,1);
 
 err = [fc-[K(1);K(5)];reshape(rodrigues(omc),[],1)-R(:);Tc-T];
 err = err'*err
@@ -230,4 +224,3 @@ err1 = [fc1-[K(1);K(5)];reshape(rodrigues(omc1),[],1)-R(:);Tc1-T];
 err1 = err1'*err1
 err2 = [fc2-[K(1);K(5)];reshape(rodrigues(omc2),[],1)-R(:);Tc2-T];
 err2 = err2'*err2
-

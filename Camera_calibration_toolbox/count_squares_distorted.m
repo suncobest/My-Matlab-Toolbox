@@ -21,7 +21,7 @@ pt2n = normalize_pixel([x2;y2]-1,fg,cg,kg,0);
 
 ptsn = repmat(pt1n,[1 nX+1]) + (pt2n - pt1n)*alpha_x;
 
-pts = apply_distortion2(ptsn,kg);
+pts = apply_distortion(ptsn,kg);
 pts(1,:) = fg(1)*pts(1,:) + cg(1);
 pts(2,:) = fg(2)*pts(2,:) + cg(2);
 

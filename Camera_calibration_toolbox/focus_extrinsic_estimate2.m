@@ -199,22 +199,18 @@ fc = fc.*f;
 
 % iterate when k_dist~=0
 if flag,
-    
     % The vertical lines: vert, Horizontal lines: hori
     vert = zeros(3,N_x);
     hori = zeros(3,N_y);
-    
     for counter_k = 1:N_iter, 	% the Iterative Vanishing Points Algorithm to
-        
         % normalize by the current focal:
         x_all = [grid_pts_centered(1,:)/fc(1);grid_pts_centered(2,:)/fc(2)];
-        
+
         % Compensate by the distortion factor:
         x_all_c = comp_distortion(x_all,k_dist);
-        
         x_grid(:) = x_all_c(1,:);
         y_grid(:) = x_all_c(2,:);
-        
+
         % 直线和点满足方程x'*l=0，齐次方程的解为矩阵x'最小奇异值对应的右奇异矢量，即矩阵x的左奇异矢量
         for k=1:N_x,
             X = [x_grid(k,:);y_grid(k,:);ones(1,N_y)];
@@ -222,14 +218,14 @@ if flag,
             [~,~,V] = svd(X);
             vert(:,k) = V(:,3);
         end;
-        
+
         for k=1:N_y,
             X = [x_grid(:,k)';y_grid(:,k)';ones(1,N_x)];
             X = X*X';
             [~,~,V] = svd(X);
             hori(:,k) = V(:,3);
         end;
-        
+
         % 2 principle Vanishing points:
         X = vert*vert';
         [~,~,V] = svd(X);
@@ -237,83 +233,71 @@ if flag,
         X = hori*hori';
         [~,~,V] = svd(X);
         V_hori = V(:,3);
-        
+
         % Square warping:
         vert_first = vert(:,1) - dot(V_vert,vert(:,1)) * V_vert;
         vert_last = vert(:,N_x) - dot(V_vert,vert(:,N_x)) * V_vert;
-        
+
         hori_first = hori(:,1) - dot(V_hori,hori(:,1)) * V_hori;
         hori_last = hori(:,N_y) - dot(V_hori,hori(:,N_y)) * V_hori;
-        
-        
+
         x1 = cross(hori_first,vert_first);
         x2 = cross(hori_first,vert_last);
         x3 = cross(hori_last,vert_last);
         x4 = cross(hori_last,vert_first);
-        
+
         x1 = x1/x1(3);
         x2 = x2/x2(3);
         x3 = x3/x3(3);
         x4 = x4/x4(3);
-        
-        
-        
+
         [square] = Rectangle2Square([x1 x2 x3 x4],W,L);
-        
         y1 = square(:,1);
         y2 = square(:,2);
         y3 = square(:,3);
         y4 = square(:,4);
-        
+
         H2 = cross(V_vert,V_hori);                  % ideal line of the 3D plane, also the normal
-        
         V_diag1 = cross(cross(y1,y3),H2);
         V_diag2 = cross(cross(y2,y4),H2);
-        
+
         V_diag1 = V_diag1 / norm(V_diag1);
         V_diag2 = V_diag2 / norm(V_diag2);
-        
-        
+
         % Estimation of the focal length, and normalization:
-        
         a1 = V_hori(1);
         b1 = V_hori(2);
         c1 = V_hori(3);
-        
+
         a2 = V_vert(1);
         b2 = V_vert(2);
         c2 = V_vert(3);
-        
+
         a3 = V_diag1(1);
         b3 = V_diag1(2);
         c3 = V_diag1(3);
-        
+
         a4 = V_diag2(1);
         b4 = V_diag2(2);
         c4 = V_diag2(3);
-        
-        
+
         A = [a1*a2  b1*b2; a3*a4  b3*b4];
         b = -[c1*c2;c3*c4];
-        
+
         if two_focal,
             f = sqrt(abs(1./(A\b)));
         else
             f = sqrt(abs(1./(sum(A,2)\b))) * ones(2,1);
         end;
-        
+
         % REMARK:
         % if both a and b are small, the calibration is impossible.
         % if one of them is small, only the other focal length is observable
         % if none is small, both focals are observable
-        
-        
+
         fc = fc .* f;
-        
         % end of focal compensation
-        
     end;
-    
 end;
 
 % At that point, we hope that the distortion is gone...
@@ -385,13 +369,9 @@ idx = find(idx==max(idx));
 
 if V_hori(idx) < 0, V_hori = -V_hori; end;        % the point at the infinity of x axis
 V_hori = sign(dx(idx))*V_hori;
-
 V_hori = V_hori - dot(V_hori,H2)*H2;
-
 V_hori = V_hori/norm(V_hori);
-
 Rc = [V_hori, cross(H2,V_hori), H2];
-
 omc = rodrigues(Rc);
 
 % Deduce the translation vector: x1 is the origin
@@ -413,7 +393,6 @@ u_hori = X2 - X1;  % 相邻两边为网格矢量
 u_vert = X4 - X1;
 
 scale = mean([W/norm(u_hori); L/norm(u_vert)]);
-
 Tc = scale * X1;
 
 return;

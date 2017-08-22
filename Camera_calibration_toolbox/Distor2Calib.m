@@ -94,7 +94,6 @@ vert_last = vert(:,N_x) - dot(V_vert,vert(:,N_x)) * V_vert;     % 最后一列为lx_N
 hori_first = hori(:,1) - dot(V_hori,hori(:,1)) * V_hori;        % 正交化以消除误差影响。理想情况下，V_hori垂直于hori的所有列。第一列为ly_1和射心所在平面的法矢量
 hori_last = hori(:,N_y) - dot(V_hori,hori(:,N_y)) * V_hori;     % 最后一列为ly_N_y和射心所在平面的法矢量
 
-
 x1 = cross(hori_first,vert_first);   % 平面py_1和平面px_1的交线方向，从射心指向第一个角点
 x2 = cross(hori_first,vert_last);    % 平面py_1和平面px_N_x的交线方向，从射心指向x轴上最后一个角点
 x3 = cross(hori_last,vert_last);     % 平面py_N_y和平面px_N_x的交线方向，从射心指向对角处最远的角点
@@ -129,7 +128,6 @@ V_diag2_pix = V_diag2;
 
 % end of computation of the vanishing points in pixels.
 
-
 fc_2 = f_ini;
 x_all_c = [grid_pts_centered(1,:)/fc_2(1);grid_pts_centered(2,:)/fc_2(2)];
 x_all_c = comp_distortion(x_all_c,k_dist); % we can this time!!!
@@ -141,24 +139,24 @@ hori = zeros(3,N_y);
 % 直线和点满足方程x'*l=0，齐次方程的解为矩阵x'最小奇异值对应的右奇异矢量，即矩阵x的左奇异矢量
 for counter_k = 1:N_iter, 	% the Iterative Vanishing Points Algorithm to
     % estimate the focal length accurately
-    
+
     x_grid(:) = x_all_c(1,:);
     y_grid(:) = x_all_c(2,:);
-    
+
     for k=1:N_x,
         X = [x_grid(k,:);y_grid(k,:);ones(1,N_y)];
         X = X*X';
         [~,~,V] = svd(X);
         vert(:,k) = V(:,3);
     end;
-    
+
     for k=1:N_y,
         X = [x_grid(:,k)';y_grid(:,k)';ones(1,N_x)];
         X = X*X';
         [~,~,V] = svd(X);
         hori(:,k) = V(:,3);
     end;
-    
+
     % 2 principle Vanishing points:
     X = vert*vert';
     [~,~,V] = svd(X);
@@ -166,68 +164,68 @@ for counter_k = 1:N_iter, 	% the Iterative Vanishing Points Algorithm to
     X = hori*hori';
     [~,~,V] = svd(X);
     V_hori = V(:,3);
-   
-    
-    
-    % Square warping:  
+
+
+
+    % Square warping:
     vert_first = vert(:,1) - dot(V_vert,vert(:,1)) * V_vert;
     vert_last = vert(:,N_x) - dot(V_vert,vert(:,N_x)) * V_vert;
-    
+
     hori_first = hori(:,1) - dot(V_hori,hori(:,1)) * V_hori;
     hori_last = hori(:,N_y) - dot(V_hori,hori(:,N_y)) * V_hori;
-    
-    
+
+
     x1 = cross(hori_first,vert_first);
     x2 = cross(hori_first,vert_last);
     x3 = cross(hori_last,vert_last);
     x4 = cross(hori_last,vert_first);
-    
+
     x1 = x1/x1(3);
     x2 = x2/x2(3);
     x3 = x3/x3(3);
     x4 = x4/x4(3);
-    
-    
-    
+
+
+
     [square] = Rectangle2Square([x1 x2 x3 x4],W,L);
-    
+
     y1 = square(:,1);
     y2 = square(:,2);
     y3 = square(:,3);
     y4 = square(:,4);
-    
+
     H2 = cross(V_vert,V_hori);
-    
+
     V_diag1 = cross(cross(y1,y3),H2);
     V_diag2 = cross(cross(y2,y4),H2);
-    
+
     V_diag1 = V_diag1 / norm(V_diag1);
     V_diag2 = V_diag2 / norm(V_diag2);
-    
-    
+
+
     % Estimation of the focal length, and normalization:
-    
+
     % Compute the ellipsis of (1/f^2) positions:
     % a * (1/fx)^2 + b * (1/fx)^2 = -c
-    
-    
+
+
     a1 = V_hori(1);
     b1 = V_hori(2);
     c1 = V_hori(3);
-    
+
     a2 = V_vert(1);
     b2 = V_vert(2);
     c2 = V_vert(3);
-    
+
     a3 = V_diag1(1);
     b3 = V_diag1(2);
     c3 = V_diag1(3);
-    
+
     a4 = V_diag2(1);
     b4 = V_diag2(2);
     c4 = V_diag2(3);
-    
-    
+
+
     if two_focal,
         A = [a1*a2 b1*b2;a3*a4 b3*b4];
         b = -[c1*c2;c3*c4];
@@ -236,30 +234,23 @@ for counter_k = 1:N_iter, 	% the Iterative Vanishing Points Algorithm to
         f = sqrt(abs(-(c1*c2*(a1*a2 + b1*b2) + c3*c4*(a3*a4 + b3*b4))/(c1^2*c2^2 + c3^2*c4^2)));
         f = [f;f];
     end;
-    
-    
-    
+
+
+
     % REMARK:
     % if both a and b are small, the calibration is impossible.
     % if one of them is small, only the other focal length is observable
     % if none is small, both focals are observable
     fc_2 = fc_2 .* f;
-    
-    
+
     % DEBUG PART: fix focal to 500...
     %fc_2= [500;500]; disp('Line 293 to be earased in Distor2Calib.m');
-    
-    
     % end of focal compensation
-    
     % normalize by the current focal:
-    
     x_all = [grid_pts_centered(1,:)/fc_2(1);grid_pts_centered(2,:)/fc_2(2)];
-    
+
     % Compensate by the distortion factor:
-    
     x_all_c = comp_distortion(x_all,k_dist);
-    
 end;
 
 % At that point, we hope that the distortion is gone...
@@ -299,38 +290,21 @@ if H_2(3) < 0, H_2 = -H_2; end;
 
 
 % Rotation matrix:
-
 if V_hori(1) < 0, V_hori = -V_hori; end;
-
 V_hori = V_hori/norm(V_hori);
 H_2 = H_2/norm(H_2);
-
 V_hori = V_hori - dot(V_hori,H_2)*H_2;
-
 Rc_2 = [V_hori cross(H_2,V_hori) H_2];
-
 Rc_2 = Rc_2 / det(Rc_2);
 
-%omc_2 = rodrigues(Rc_2);
-
-%Rc_2 = rodrigues(omc_2);
-
 % Find the distance of the plane for translation vector:
-
 xc_2 = [x_all_c;ones(1,Np)];
-
 Zc_2 = 1./sum(xc_2 .* (Rc_2(:,3)*ones(1,Np)));
-
 Xo_2 = [sum(xc_2 .* (Rc_2(:,1)*ones(1,Np))).*Zc_2 ; sum(xc_2 .* (Rc_2(:,2)*ones(1,Np))).*Zc_2];
-
 XXo_2 = Xo_2 - mean(Xo_2')'*ones(1,Np);
-
 distance_x = norm(Xgrid_2(1,:))/norm(XXo_2(1,:));
 distance_y = norm(Xgrid_2(2,:))/norm(XXo_2(2,:));
-
-
 distance = sum(sum(XXo_2(1:2,:).*Xgrid_2(1:2,:)))/sum(sum(XXo_2(1:2,:).^2));
-
 alpha = abs(distance_x - distance_y)/distance;
 
 if (alpha>0.1)&&~two_focal,
@@ -338,10 +312,7 @@ if (alpha>0.1)&&~two_focal,
 end;
 
 % Deduce the translation vector:
-
 Tc_2 = distance * H_2;
 
 
 return;
-
-

@@ -21,7 +21,6 @@ function [Qckk,Tckk,JJ] = compute_extrinsic_lm_refine(x_kk,X_kk,Qc_init,Tc_init,
 % Method: Computes the normalized point coordinates, then computes the 3D pose
 %
 % Important functions called within that program:
-% normalize_pixel: Computes the normalize image point coordinates.
 % trans_quat_mat: transform rotation matrix to quternion vector, or vice versa.
 %  See also compute_extrinsic_init2, compute_extrinsic_init.
 
