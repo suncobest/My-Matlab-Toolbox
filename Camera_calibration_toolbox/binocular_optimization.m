@@ -1,16 +1,40 @@
+function [X,om2,T2,fc2,cc2,kc2,alpha2] = binocular_optimization(xpair,om,T,hand,fc,cc,kc,alpha,est_fc,center_optim,est_dist,est_alpha,est_aspect)
+% binocular_optimization
+%
+% Computes the 3D structure Xmat in a back projective way, given corresponding pixel
+% points and parameters of n_cam cameras.
+%
+% INPUT: xbody: corresponding pixel feature stored in n_cam page of a cuboid: 2*npts*n_cam
+%       Missing pixel data is denoted as NaN;
+%       omcmat: the axis angle orientation of world frame in every camera frame: 3*n_cam
+%       Tmat: the position of world frame origin in every camera frame: 3*n_cam
+%       fmat: Camera focal length of every camera: 2*n_cam
+%       cmat: Principal point coordinates of every Camera: 2*n_cam
+%       kmat: Distortion coefficients of every camera: 5*n_cam
+%       alphavec: Skew coefficient of every camera: 1*n_cam
+%       handvec: Handness of every camera frame wrt world reference frame (1 or -1);
+%
+% OUTPUT:   Xmat: the restored 3d structure in world reference frame: 3*npts
+%
+% Method: First computes the normalized point coordinates, then computes the 3D
+% structure using DLT algorithm.
+%
+% Important functions called within that program:
+% normalize_pixel: Computes the normalize image point coordinates.
+% rodrigues: transform rotation matrix to axis angle rotation vector, or vice versa.
+%
+% See also compute_structure, stereo_triangulation, stereo_triangulation2.
 % intrinsic and extrinsic parameters
-intr_update = reshape([fc_mat; cc_mat; alpha_vec; kc_mat; Omcc; Tcc],ncam16,1);
+
+intr_update = [fc; cc; alpha; kc];
+intr_update = [intr_update(:); om; T];
 extr_update = reshape([Xo; thph],nima5,1);
-if ~exist('init_param','var') || length(init_param) ~= ncam16+nima5,
-    init_param = [intr_update; extr_update];
-end;
 intr_param = init_update;
 extr_param = extr_update;
 
 % The following vector helps to select the variables to update:
-selected_invar = [est_fc_mat; ones(2,1)*center_optim_vec; est_alpha_vec; est_dist_mat; active_cam(ones(6,1),:)];
-selected_invar(2,:) = selected_invar(2,:).*(est_aspect_ratio_vec | ~est_fc_mat(1,:));
-selected_invar(11:16,idm) = 0;
+selected_invar = [est_fc; ones(2,1)*center_optim; est_alpha; est_dist; zeros(6,1), ones(6,1)];
+selected_invar(2,:) = selected_invar(2,:).*(est_aspect | ~est_fc(1,:));
 selected_exvar = reshape(active_images(ones(5,1),:),1,nima5);
 ind_va = find(selected_invar);
 ind_vb = find(selected_exvar);
@@ -41,8 +65,8 @@ err_std0 = std(ex,0,2);
 lamda = 0.001; % set an initial value of the damping factor for the LM
 updateJ = 1;
 ex = ex(:);
-ex2_init = dot(ex,ex);
-ex2 = ex2_init;
+ex2 = dot(ex,ex);
+ex2 = ex2;
 for iter = 1:MaxIter,
     fprintf(1,'%d...',iter);
     if mod(iter,20)==0,
