@@ -1,30 +1,88 @@
 function [X,om2,T2,fc2,cc2,kc2,alpha2] = binocular_optimization(xpair,om,T,hand,fc,cc,kc,alpha,est_fc,center_optim,est_dist,est_alpha,est_aspect)
-% binocular_optimization
+% BINOCULAR_OPTIMIZATION computes the optimized 3D structure X in a given binocular
+% system, the parameters of the two cameras will be refined at the same time.
 %
-% Computes the 3D structure Xmat in a back projective way, given corresponding pixel
-% points and parameters of n_cam cameras.
+% INPUT:
+%       xpair: corresponding image points of two cameras (2*npts*2 or 4*npts);
+%       Om: the initial rotation vector (axis angle) from camera 1 to camera 2 (3*1);
+%       T: the initial translation vector from camera 1 to camera 2 (3*1);
+%       hand: the handedness of camera 2 wrt camera 1 (1 or -1);
+%       fc: the initial camera focal length of the two cameras (2*2);
+%       cc: the initial principal point coordinates of the two cameras (2*2);
+%       kc: the initial distortion coefficients of every camera (5*2);
+%       alpha: the initial skew coefficient of every camera (1*2);
+%       est_fc: switch to turn on/off the estimation of focal length (2*2);
+%       center_optim: switch to turn on/off the estimation of principal point (1*2);
+%       est_dist: switch to turn on/off the estimation of distortion coefficients (5*2);
+%       est_alpha: switch to turn on/off the estimation of pixel skew (1*2);
+%       est_aspect: switch to turn on/off the estimation of aspect ratio of focal length (1*2);
 %
-% INPUT: xbody: corresponding pixel feature stored in n_cam page of a cuboid: 2*npts*n_cam
-%       Missing pixel data is denoted as NaN;
-%       omcmat: the axis angle orientation of world frame in every camera frame: 3*n_cam
-%       Tmat: the position of world frame origin in every camera frame: 3*n_cam
-%       fmat: Camera focal length of every camera: 2*n_cam
-%       cmat: Principal point coordinates of every Camera: 2*n_cam
-%       kmat: Distortion coefficients of every camera: 5*n_cam
-%       alphavec: Skew coefficient of every camera: 1*n_cam
-%       handvec: Handness of every camera frame wrt world reference frame (1 or -1);
-%
-% OUTPUT:   Xmat: the restored 3d structure in world reference frame: 3*npts
-%
-% Method: First computes the normalized point coordinates, then computes the 3D
-% structure using DLT algorithm.
+% OUTPUT:
+%       X: the reconstructed 3d points in the 1st camera frame (3*npts)
+%       om2: the refined rotation vector (axis angle) from camera 1 frame (3*1);
+%       T2: the refined translation vector from camera 1 frame (3*1);
+%       fc2: the refined camera focal length of the two cameras (2*2);
+%       cc2: the refined principal point coordinates of the two cameras (2*2);
+%       kc2: the refined distortion coefficients of every camera (5*2);
+%       alpha2: the refined skew coefficient of every camera (1*2);
 %
 % Important functions called within that program:
 % normalize_pixel: Computes the normalize image point coordinates.
-% rodrigues: transform rotation matrix to axis angle rotation vector, or vice versa.
 %
-% See also compute_structure, stereo_triangulation, stereo_triangulation2.
-% intrinsic and extrinsic parameters
+% See also compute_structure2, stereo_triangulation2, compute_Rt_pair.
+
+% By ZPF @ZVR, 2017-8-24
+
+if nargin<13,
+    est_aspect = true(1,2);
+    if nargin<12,
+        est_alpha = true(1,2);
+        if nargin<11,
+            est_dist = true(5,2);
+            if nargin<10,
+                center_optim = true(1,2);
+                if nargin<9,
+                    est_fc = true(2,2);
+                    if nargin<8,
+                        alpha = [0,0];
+                        if nargin<7,
+                            kc = zeros(5,2);
+                        end;
+                    end;
+                end;
+            end;
+        end;
+    end;
+end;
+
+[m,npts,n] = size(xpair);
+if n==1,
+    assert(m==4,'The 1st argument must contain corresponding points of two cameras!');
+    xp = zeros(2,npts,2);
+    xp(:,:,1) = xpair(1:2,:);
+    xp(:,:,2) = xpair(3:4,:);
+elseif n==2,
+    assert(m==2,'Unexpected dimension of the 1st argument!');
+    xp = xpair;
+else
+    disp('Unexpected dimension of the 1st argument!');
+    return;
+end;
+
+assert(isequal(size(om),[3,1]), 'Unexpected dimension of the rotation vector!');
+assert(isequal(size(T),[3,1]), 'Unexpected dimension of the translation vector!');
+assert(isreal(hand) && abs(hand)==1, 'Unexpected value of the handedness!');
+assert(isequal(size(fc),[2,2]), 'Unexpected dimension of the 2 cameras'' focal length!');
+assert(isequal(size(cc),[2,2]), 'Unexpected dimension of the 2 cameras'' principle points!');
+assert(isequal(size(kc),[5,2]), 'Unexpected dimension of the 2 cameras'' distortion coefficients!');
+assert(isequal(size(alpha),[1,2]), 'Unexpected dimension of the 2 cameras'' skew parameters!');
+assert(isequal(size(est_fc),[2,2]), 'Unexpected dimension of the 9th argument!');
+assert(isequal(size(center_optim),[1,2]), 'Unexpected dimension of the 10th argument!');
+assert(isequal(size(est_dist),[5,2]), 'Unexpected dimension of the 11th argument!');
+assert(isequal(size(est_alpha),[1,2]), 'Unexpected dimension of the 12th argument!');
+assert(isequal(size(est_aspect),[1,2]), 'Unexpected dimension of the 13th argument!');
+
+X = compute_structure2(xp,[zeros(3,1),om],[zeros(3,1),T],hand,fc,cc,kc,alpha);
 
 intr_update = [fc; cc; alpha; kc];
 intr_update = [intr_update(:); om; T];

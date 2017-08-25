@@ -9,17 +9,23 @@ function [Omc,Tc,Emat] = compute_Rt_pair(xpair,fmat,cmat,kmat,alphavec,hand)
 % Linear triangulation methods: p312.
 %
 % Arguments:
-%          xpair: corresponding image points of two cameras: 2*npts*2 or 4*npts
-%          fmat: Camera focal length of every camera: 2*2
-%          cmat: Principal point coordinates of every Camera: 2*2
-%          kmat: Di however,stortion coefficients of every camera: 5*2
-%          alphavec: Skew coefficient of every camera: 1*2
-%          hand: Handness of camera 2 wrt camera 1;
+%          xpair: corresponding image points of two cameras (2*npts*2 or 4*npts);
+%          fmat: the camera focal length of every camera (2*2);
+%          cmat: the principal point coordinates of every Camera (2*2);
+%          kmat: the distortion coefficients of every camera (5*2);
+%          alphavec: the skew coefficient of every camera (1*2);
+%          hand: the handedness of camera 2 wrt camera 1 (1 or -1);
 %
 % OUTPUT:
 %          Omc: the rotation vector (axis angle) from camera 1 to camera 2;
 %          Tc: the translation vector from camera 1 to camera 2;
 %          Emat: the essential matrix, x2n'*Emat*x1n=0;
+%
+% Method:
+%         First normalizing all point's coordinates;
+%         using the 8-point correspondence algorithm to compute the essential matrix;
+%         decomposing the essential matrix into rotation and translation;
+%         using DLT algorithm to compute 3D structure and choose the right solution.
 
 % By ZPF @ZVR, 2017-8-4
 
