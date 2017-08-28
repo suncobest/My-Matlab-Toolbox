@@ -27,7 +27,7 @@ n_cam = n_block*ncpb;
 % fov_angle = 75+randn(1,n_cam)*5;
 % fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,n_cam)*50;
 % cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
-% alpha_vec = (randi(2,1,n_cam)-1).*rand(1,n_cam)/10;
+% alpha_vec = randi([-1,1],1,n_cam).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/10; randn(1,n_cam)/50; randn(2,n_cam)/100; randn(1,n_cam)/1000];
 
 imsize = (randi(1000,2,1)+800)*ones(1,n_cam);
@@ -38,7 +38,7 @@ end;
 
 fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,1)*50;
 cc_mat = (imsize-1)/2+randn(2,1)*50;
-alpha_vec = (randi(2,1)-1).*rand/10*ones(1,n_cam);
+alpha_vec = randi([-1,1]).*rand/10*ones(1,n_cam);
 % alpha_vec = zeros(1,n_cam);
 kc_mat = zeros(5, n_cam);
 
