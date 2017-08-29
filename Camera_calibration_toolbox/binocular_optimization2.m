@@ -1,7 +1,7 @@
 function [X,om2,T2,fc2,cc2,kc2,alpha2,estd,estd0] = binocular_optimization2(xpair,om,T,hand,fc,cc,kc,alpha,...
                                                                            est_fc,center_optim,est_dist,est_alpha,est_aspect)
 % BINOCULAR_OPTIMIZATION2 computes the optimized 3D structure X in a given binocular
-% system, the intreters of the two cameras will be refined at the same time.
+% system, the parameters of the two cameras will be refined at the same time.
 %
 % INPUT:
 %       xpair: corresponding image points of two cameras (2*npts*2 or 4*npts);
@@ -30,11 +30,11 @@ function [X,om2,T2,fc2,cc2,kc2,alpha2,estd,estd0] = binocular_optimization2(xpai
 % Important functions called within that program:
 % normalize_pixel: Computes the normalize image point coordinates.
 %
-% See also compute_structure2, stereo_triangulation2, compute_Rt_pair.
+% See also binocular_optimization, compute_Rt_pair, compute_structure2, stereo_triangulation2.
 
 % By ZPF @ZVR, 2017-8-24
 
-MaxIter = 30; % Maximum number of iterations
+MaxIter = 10; % Maximum number of iterations
 bigeps = 1e-5;
 
 if nargin<13,
@@ -43,7 +43,6 @@ if nargin<13,
         est_alpha = true(1,2);
         if nargin<11,
             est_dist = true(5,2);
-            est_dist(5,:) = 0;
             if nargin<10,
                 center_optim = true(1,2);
                 if nargin<9,
@@ -105,9 +104,6 @@ ind_va(2,:) = ind_va(2,:).*(est_aspect | ~est_fc(1,:));
 ind_va = logical(ind_va(:)');
 idx = all(~isnan(X),1);
 ind_vb = reshape(idx(ones(3,1),:),1,npts3);
-np = sum(idx);
-np2 = 2*np;
-np3 = 3*np;
 
 % initial error before bundle adjustment
 ex = []; % Global error vector
@@ -298,8 +294,8 @@ imageXY = 500+randi(500,2,2);
 f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
 c = (imageXY-1)/2+50*randn(2,2);
 k = zeros(5,2);
-div = 3.^(repmat((1:4)',1,2))+10;
-k(1:4,:) = randn(4,2)./div;
+% div = 3.^(repmat((1:4)',1,2))+10;
+% k(1:4,:) = randn(4,2)./div;
 alp = randi([-1,1],1,2).*rand(1,2)/10;
 for i = 1:2,
     x = project_points_mirror2(X,om(:,i),T(:,i),hd(i),f(:,i),c(:,i),k(:,i),alp(i));
@@ -321,7 +317,7 @@ c1 = c+100*randn;
 k1 = zeros(5,2);
 alp1 = zeros(1,2);
 [om1, T1] = compute_Rt_pair(xx,f1,c1,k1,alp1,hd(2));
-[XX,om2,T2,f2,c2,k2,alp2,e,e0] = binocular_optimization2(xx,om1,T1,hd(2),f1,c1,k1,alp1);
+[XX,om2,T2,f2,c2,k2,alp2,e,e0] = binocular_optimization2(xx,om1,T1,hd(2),f1,c1,k1,alp1,ones(2),ones(1,2),zeros(5,2),ones(1,2),ones(1,2));
 XXlen = sqrt(sum(diff(XX,1,2).^2,1));
 Xlen = sqrt(sum(diff(X,1,2).^2,1));
 id = Xlen>1e-3;

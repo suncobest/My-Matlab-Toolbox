@@ -301,12 +301,21 @@ for pp = [1:idm-1, idm+1:n_cam],
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
 
                 % triangulation and  determine the scale factor
-                XX = compute_structure2(xx,[zeros(3,1),om2],[zeros(3,1),T2],[1,handkk],fc,cc,kc,alpha_c);
-                XX = reshape(XX,[3,np1D,length(kk)]);
-                ind = all(all(~isnan(XX),1),2);
-                Xlen = permute(sqrt(sum(diff(XX(:,:,ind),[],2).^2,1)),[3,2,1]);  % length of rod (with ||T2||=1)
-                s = mean(diff(rodlen)./mean(Xlen,1));
+                % XX = compute_structure2(xx,[zeros(3,1),om2],[zeros(3,1),T2],[1,handkk],fc,cc,kc,alpha_c);
+                % XX = reshape(XX,[3,np1D,length(kk)]);
+                % ind = all(all(~isnan(XX),1),2);
+                % Xlen = permute(sqrt(sum(diff(XX(:,:,ind),[],2).^2,1)),[3,2,1]);  % length of rod (with ||T2||=1)
+                % s = mean(diff(rodlen)./mean(Xlen,1));
+                % [om,T] = compose_motion2(Omcc(:,id(1)),Tcc(:,id(1)),om2,T2*s,handkk);
 
+                % refine camera pair
+                est_fc = est_fc_mat(:,id);
+                center_optim = center_optim_vec(id);
+                est_dist = est_dist_mat(:,id);
+                est_alpha = est_alpha_vec(id);
+                est_aspect = est_aspect_ratio_vec(id);
+                [XX,om2,T2,fc2,cc2,kc2,alpha2] = binocular_1D_optim(xx,rodlen,om2,T2,handkk,fc,cc,kc,alpha_c,...
+                                                                    est_fc,center_optim,est_dist,est_alpha,est_aspect)
                 % chain the Euclidean motion
                 [om,T] = compose_motion2(Omcc(:,id(1)),Tcc(:,id(1)),om2,T2*s,handkk);
                 Omcc(:,id(2)) = om;
