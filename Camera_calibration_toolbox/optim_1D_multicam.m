@@ -4,7 +4,7 @@ extr_update = reshape([Xo; thph],nima5,1);
 if ~exist('init_param','var') || length(init_param) ~= ncam16+nima5,
     init_param = [intr_update; extr_update];
 end;
-intr_param = init_update;
+intr_param = intr_update;
 extr_param = extr_update;
 
 % The following vector helps to select the variables to update:
