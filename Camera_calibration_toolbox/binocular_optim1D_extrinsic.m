@@ -1,6 +1,5 @@
-function [X,om2,T2,fc2,cc2,kc2,alpha2,estd,estd0] = binocular_1D_optim(xpair,rodlen,om,T,hand,fc,cc,kc,alpha,...
-                                                                           est_fc,center_optim,est_dist,est_alpha,est_aspect)
-% BINOCULAR_1D_OPTIM computes the optimized 3D structure X in a given binocular
+function [X,om2,T2,estd,estd0] = binocular_optim1D_extrinsic(xpair,rodlen,om,T,hand,fc,cc,kc,alpha)
+% BINOCULAR_OPTIM1D_EXTRINSIC computes the optimized 3D structure X in a given binocular
 % system, the parameters of the two cameras will be refined at the same time.
 %
 % INPUT:
@@ -14,25 +13,16 @@ function [X,om2,T2,fc2,cc2,kc2,alpha2,estd,estd0] = binocular_1D_optim(xpair,rod
 %       cc: the initial principal point coordinates of the two cameras (2*2);
 %       kc: the initial distortion coefficients of every camera (5*2);
 %       alpha: the initial skew coefficient of every camera (1*2);
-%       est_fc: switch to turn on/off the estimation of focal length (2*2);
-%       center_optim: switch to turn on/off the estimation of principal point (1*2);
-%       est_dist: switch to turn on/off the estimation of distortion coefficients (5*2);
-%       est_alpha: switch to turn on/off the estimation of pixel skew (1*2);
-%       est_aspect: switch to turn on/off the estimation of aspect ratio of focal length (1*2);
 %
 % OUTPUT:
 %       X: the reconstructed 3d points in the 1st camera frame (3*npts);
 %       om2: the refined rotation vector (axis angle) from camera 1 frame (3*1);
 %       T2: the refined translation vector from camera 1 frame (3*1);
-%       fc2: the refined camera focal length of the two cameras (2*2);
-%       cc2: the refined principal point coordinates of the two cameras (2*2);
-%       kc2: the refined distortion coefficients of every camera (5*2);
-%       alpha2: the refined skew coefficient of every camera (1*2);
 %
 % Important functions called within that program:
 % normalize_pixel: Computes the normalize image point coordinates.
 %
-% See also binocular_optimization, binocular_optimization2, compute_Rt_pair, compute_structure2, stereo_triangulation2.
+% See also binocular_1D_optim, binocular_optimization2, compute_Rt_pair, compute_structure2, stereo_triangulation2.
 
 % By ZPF @ZVR, 2017-8-24
 
@@ -40,25 +30,10 @@ MaxIter = 10; % Maximum number of iterations
 bigeps = 1e-5;
 thresh_cond = 1e10;
 
-if nargin<14,
-    est_aspect = true(1,2);
-    if nargin<13,
-        est_alpha = true(1,2);
-        if nargin<12,
-            est_dist = true(5,2);
-            if nargin<11,
-                center_optim = true(1,2);
-                if nargin<10,
-                    est_fc = true(2,2);
-                    if nargin<9,
-                        alpha = [0,0];
-                        if nargin<8,
-                            kc = zeros(5,2);
-                        end;
-                    end;
-                end;
-            end;
-        end;
+if nargin<9,
+    alpha = [0,0];
+    if nargin<8,
+        kc = zeros(5,2);
     end;
 end;
 
@@ -85,11 +60,6 @@ assert(isequal(size(fc),[2,2]), 'Unexpected dimension of the 2 cameras'' focal l
 assert(isequal(size(cc),[2,2]), 'Unexpected dimension of the 2 cameras'' principle points!');
 assert(isequal(size(kc),[5,2]), 'Unexpected dimension of the 2 cameras'' distortion coefficients!');
 assert(isequal(size(alpha),[1,2]), 'Unexpected dimension of the 2 cameras'' skew intreters!');
-assert(isequal(size(est_fc),[2,2]), 'Unexpected dimension of the 10th argument!');
-assert(isequal(size(center_optim),[1,2]), 'Unexpected dimension of the 11th argument!');
-assert(isequal(size(est_dist),[5,2]), 'Unexpected dimension of the 12th argument!');
-assert(isequal(size(est_alpha),[1,2]), 'Unexpected dimension of the 13th argument!');
-assert(isequal(size(est_aspect),[1,2]), 'Unexpected dimension of the 14th argument!');
 
 omc = [zeros(3,1),om];
 T = T/norm(T);
@@ -119,15 +89,10 @@ nact = sum(ind);
 nact5 = 5*nact;
 nid2 = 2*nact*np1D;
 
-intr_up = reshape([fc; cc; alpha; kc; omc; Tc],32,1);
+intr_up = [om; T];
 extr_up = reshape([Xo; thph],nact5,1);
 intr = intr_up;
 extr = extr_up;
-
-% The following vector helps to select the variables to update:
-ind_va = [est_fc; ones(2,1)*center_optim; est_alpha; est_dist; zeros(6,1), ones(6,1)];
-ind_va(2,:) = ind_va(2,:).*(est_aspect | ~est_fc(1,:));
-ind_va = logical(ind_va(:)');
 
 % initial error before bundle adjustment
 ex = []; % Global error vector
@@ -137,7 +102,7 @@ for pp = 1:2,
     ex_kk = x_kk - x;
     ex = [ex, ex_kk];
 end;
-if nargout > 8,
+if nargout > 4,
     estd0 = std(ex,0,2);
 end;
 
@@ -150,20 +115,15 @@ for iter = 1:MaxIter,
     % fprintf(1,'%d...',iter);
     if updateJ,
         % JJ2 = JJ'*JJ = [U, W; W', V]
-        U = sparse([],[],[],32,32,512);
+        U = zeros(6);
         V = sparse([],[],[],nact5,nact5,5*nact5);
-        W = sparse([],[],[],32,nact5,32*nact5);
-        ea = zeros(32,1);        % A'*ex
-        eb = zeros(nact5,1);     % B'*ex
+        W = sparse([],[],[],6,nact5,6*nact5);
+        ea = zeros(6,1);        % A'*ex
+        eb = zeros(nact5,1);    % B'*ex
 
         % restore 3D points and camera parameters
-        X = reshape(intr,16,2);
-        fc2 = X(1:2,:);
-        cc2 = X(3:4,:);
-        alpha2 = X(5,:);
-        kc2 = X(6:10,:);
-        omc = X(11:13,:);
-        Tc = X(14:16,:);
+        omc = [zeros(3,1),intr(1:3)];
+        Tc = [zeros(3,1),intr(4:6)];
         X = reshape(extr,5,nact);
         Xo = X(1:3,:);
         thph = X(4:5,:);
@@ -171,32 +131,23 @@ for iter = 1:MaxIter,
         for pp = 1:2,
             % load pixel points
             x_kk = xpair(:,idx,pp);
-            if est_aspect(pp),
-                [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdX] = project_points_mirror2(X,omc(:,pp),Tc(:,pp),handcc(pp),...
-                                                                                fc2(:,pp),cc2(:,pp),kc2(:,pp),alpha2(pp));
-            else
-                [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdX] = project_points_mirror2(X,omc(:,pp),Tc(:,pp),handcc(pp),...
-                                                                                fc2(1,pp),cc2(:,pp),kc2(:,pp),alpha2(pp));
-                dxdf = repmat(dxdf,[1 2]);
-            end;
+            [x,dxdom,dxdT,~,~,~,~,dxdX] = project_points_mirror2(X,omc(:,pp),Tc(:,pp),handcc(pp),fc(:,pp),cc(:,pp),kc(:,pp),alpha(pp));
             ex_kk = x_kk - x;
-            Akk = [dxdf, dxdc, dxdalpha, dxdk, dxdom, dxdT];
             Bkk = sparse([],[],[],nid2,nact5);
             dxdXo = dxdX*dXdXo;
             dxdtp = dxdX*dXdtp;
             for jj = 1:nact,
                 Bkk(:,(jj-1)*5+1:jj*5) = [dxdXo(:,(jj-1)*3+1:jj*3),dxdtp(:,(jj-1)*2+1:jj*2)];
             end;
-            ii = (pp-1)*16;
-            U(ii+1 : ii+16, ii+1 : ii+16) = Akk'*Akk;
-            ea(ii+1 : ii+16) = Akk'*ex_kk(:);
             V = V + Bkk'*Bkk;
-            W(ii+1 : ii+16, :) = Akk'*Bkk;
             eb = eb + Bkk'*ex_kk(:);
+            if pp == 2,
+                Akk = [dxdom, dxdT];
+                U = Akk'*Akk;
+                W = Akk'*Bkk;
+                ea = Akk'*ex_kk(:);
+            end;
         end;
-        U = U(ind_va,ind_va);
-        W = W(ind_va,:);
-        ea = ea(ind_va);
     end;
     U_lm = U + diag(lamda*diag(U));  % U + lamda*speye(size(U));
     V_lm = V + diag(lamda*diag(V));  %  V + lamda*speye(size(V));
@@ -204,28 +155,19 @@ for iter = 1:MaxIter,
 
     intr_innov = (U_lm-Y*W')\(ea-Y*eb);              % da
     extr_innov = V_lm\(eb-W'*intr_innov);            % db
-    intr_up(ind_va) = intr(ind_va) + intr_innov;     % updated parameters
+    intr_up = intr + intr_innov;     % updated parameters
     extr_up = extr + extr_innov;
 
     % compute reprojection error vector
-    X = reshape(intr_up,16,2);
-    fc2 = X(1:2,:);
-    cc2 = X(3:4,:);
-    alpha2 = X(5,:);
-    kc2 = X(6:10,:);
-    omc = X(11:13,:);
-    Tc = X(14:16,:);
+    omc = [zeros(3,1),intr_up(1:3)];
+    Tc = [zeros(3,1),intr_up(4:6)];
     X = reshape(extr_up,5,nact);
     X = gen_1D_points(X(1:3,:),X(4:5,:),rodlen);
     ex = [];
     for pp = 1:2,
-        % New intrinsic intreters:
-        if ~est_aspect(pp) && all(est_fc(:,pp)),
-            fc2(2,pp) = fc2(1,pp);
-        end;
         % load pixel points
         x_kk = xpair(:,idx,pp);
-        x = project_points_mirror2(X,omc(:,pp),Tc(:,pp),handcc(pp),fc2(:,pp),cc2(:,pp),kc2(:,pp),alpha2(pp));
+        x = project_points_mirror2(X,omc(:,pp),Tc(:,pp),handcc(pp),fc(:,pp),cc(:,pp),kc(:,pp),alpha(pp));
         ex_kk = x_kk - x;
         ex = [ex, ex_kk];
     end;
@@ -249,17 +191,12 @@ end;
 %%%--------------------------- Computation of the error of estimation:
 
 % fprintf(1,'\nEstimation of uncertainties...\n');
-intr = reshape(intr, 16, 2);
-fc2 = intr(1:2,:);
-cc2 = intr(3:4,:);
-alpha2 = intr(5,:);
-kc2 = intr(6:10,:);
-om2 = intr(11:13,2);
-T2 = intr(14:16,2);
+om2 = intr(1:3);
+T2 = intr(4:6);
 Tc = [zeros(3,1),T2];
 omc = [zeros(3,1),om2];
 if condest(V_lm)>thresh_cond,
-    X = compute_structure2(xpair,omc,Tc,handcc,fc2,cc2,kc2,alpha2,10);
+    X = compute_structure2(xpair,omc,Tc,handcc,fc,cc,kc,alpha,10);
 else
     X = reshape(extr,5,nact);
     Xo = X(1:3,:);
@@ -272,12 +209,12 @@ end;
 ex = [];
 for pp = 2,
     x_kk = xpair(:,idx,pp);
-    x = project_points_mirror2(X(:,idx),omc(:,pp),Tc(:,pp),handcc(pp),fc2(:,pp),cc2(:,pp),kc2(:,pp),alpha2(pp));
+    x = project_points_mirror2(X(:,idx),omc(:,pp),Tc(:,pp),handcc(pp),fc(:,pp),cc(:,pp),kc(:,pp),alpha(pp));
     ex_kk = x_kk - x;
     ex = [ex, ex_kk];
 end;
 
-if nargout > 7,
+if nargout > 3,
     estd = std(ex,0,2);
 end;
 
@@ -336,18 +273,13 @@ id = all(reshape(all(all(~isnan(xx),3),1),np1d,nim),1);
 id = reshape(id(ones(np1d,1),:),1,np);
 xx = xx(:,id,:);
 Xrod = Xrod(:,id);
-f1 = f+100*randn;
-c1 = c+100*randn;
-k1 = zeros(5,2);
-alp1 = zeros(1,2);
-[om1, T1] = compute_Rt_pair(xx,f1,c1,k1,alp1,hd(2));
-% [XX,om2,T2,f2,c2,k2,alp2,e,e0] = binocular_1D_optim(xx,rlen,om1,T1,hd(2),f1,c1,k1,alp1,ones(2),ones(1,2),[ones(4,2);zeros(1,2)],ones(1,2),ones(1,2));
-[XX,om2,T2,f2,c2,k2,alp2,e,e0] = binocular_1D_optim(xx,rlen,om1,T1,hd(2),f1,c1);
+[om1, T1] = compute_Rt_pair(xx,f,c,k,alp,hd(2));
+[XX,om2,T2,e,e0] = binocular_optim1D_extrinsic(xx,rlen,om1,T1,hd(2),f,c);
 XXlen = sqrt(sum(diff(XX,1,2).^2,1));
 Xlen = sqrt(sum(diff(Xrod,1,2).^2,1));
 id = Xlen>1e-3;
 s = mean(Xlen(id)./XXlen(id));
-err = norm([reshape([f2-f;c2-c;alp2-alp;k2-k],20,1); om2-om(:,2); T2-T(:,2)]);
+err = norm([om2-om(:,2); T2-T(:,2)]);
 if err>1e-1,
     flag = 1;
 end;

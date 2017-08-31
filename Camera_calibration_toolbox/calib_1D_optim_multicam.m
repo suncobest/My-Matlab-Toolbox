@@ -1,7 +1,5 @@
 % calib_1D_optim_multicam
 %
-% see calib_1D_optim_mirror.
-%
 % Main calibration function. Computes the intrinsic and extrinsic parameters.
 % Runs as a script.
 %
@@ -69,9 +67,9 @@ if est_intrinsic,
     while flag,
         fprintf(1,'\nDo you want to estimate the pixel skew of all %d cameras?\nSet to zero if you don''t!\n',n_cam);
         % by default do not estimate skew
-        est_alpha_vec = input(['est_alpha_vec = ([] = [' num2str(ones(1,n_cam)) ']) ']);
+        est_alpha_vec = input(['est_alpha_vec = ([] = [' num2str(zeros(1,n_cam)) ']) ']);
         if isempty(est_alpha_vec),
-            est_alpha_vec = ones(1,n_cam);
+            est_alpha_vec = zeros(1,n_cam);
             flag = 0;
         else
             est_alpha_vec = est_alpha_vec(:)';
@@ -411,7 +409,7 @@ end;
 telapsed = toc(tstart);
 
 
-flag = input('Further refine the extrinsic parameters or not? ([]=no, other=yes)','s');
+flag = input('\nFurther refine the extrinsic parameters or not? ([]=no, other=yes) ','s');
 if ~isempty(flag)
     fprintf(1,'\nRefine extrinsic parameters in the end:\n');
     optim_1D_extrinsic;

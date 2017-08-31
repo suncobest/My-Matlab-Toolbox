@@ -156,7 +156,7 @@ end;
 
 %%%--------------------------- Computation of the error of estimation:
 
-fprintf(1,'\nEstimation of uncertainties...\n');
+% fprintf(1,'\nEstimation of uncertainties...\n');
 
 % Extraction of the paramters for computing the reprojection error:
 intr_param = reshape(intr_param, 6, n_cam);
@@ -194,10 +194,10 @@ for pp = ind_cam,
 end;
 
 err_std = std(ex,0,2);
-sigma_x = std(ex(:));
 
 return;
 
+sigma_x = std(ex(:));
 % Compute the the standard deviation of parameters from std(ex):
 % ex = X-f(P),  cov(param,param) = inv((JJ'* inv(cov(ex,ex))* JJ))
 JJ2 = [U, W; W', V];    % JJ2 = JJ'*JJ
