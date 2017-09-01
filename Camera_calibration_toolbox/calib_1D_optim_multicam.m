@@ -310,7 +310,7 @@ for pp = [1:idm-1, idm+1:n_cam],
                 kk = find(ind);
                 xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
-                if est_intrinsic,
+                if 0,   % est_intrinsic,
                     % refine camera pair
                     est_fc = est_fc_mat(:,id);
                     center_optim = center_optim_vec(id);
@@ -367,18 +367,19 @@ thph = thph(2:3,:);
 if exist('Omcw','var'),
     Om2 = NaN(3,n_cam);
     T2 = Om2;
-    err = zeros(6,nc);
+    err0 = zeros(6,nc);
     for kk = 1:nc,
         pp = ind_cam(kk);
         [om,T] = compose_motion2(Omcw(:,idm),Tcw(:,idm),Omcc(:,pp),Tcc(:,pp),handcc(pp));
         Om2(:,pp) = om;
         T2(:,pp) = T;
-        err(1:3,kk) = om-Omcw(:,pp);
-        err(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
+        err0(1:3,kk) = om-Omcw(:,pp);
+        err0(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
     end;
     if exist('Xrod','var'),
         ind = reshape(repmat(active_images,[np1D,1]),1,npts);
-        errX = XX(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
+        errX0 = XX(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
+        estdX0 = std(errX0,0,2);
     end;
 end;
 
@@ -415,4 +416,22 @@ if ~isempty(flag)
     optim_1D_extrinsic;
 end;
 
+if exist('Omcw','var'),
+    Om2 = NaN(3,n_cam);
+    T2 = Om2;
+    err = zeros(6,nc);
+    for kk = 1:nc,
+        pp = ind_cam(kk);
+        [om,T] = compose_motion2(Omcw(:,idm),Tcw(:,idm),Omcc(:,pp),Tcc(:,pp),handcc(pp));
+        Om2(:,pp) = om;
+        T2(:,pp) = T;
+        err(1:3,kk) = om-Omcw(:,pp);
+        err(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
+    end;
+    if exist('Xrod','var'),
+        ind = reshape(repmat(active_images,[np1D,1]),1,npts);
+        errX = Xp(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
+        estdX = std(errX0,0,2);
+    end;
+end;
 disp('Done.');

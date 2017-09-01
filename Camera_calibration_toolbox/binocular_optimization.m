@@ -43,7 +43,6 @@ if nargin<13,
         est_alpha = true(1,2);
         if nargin<11,
             est_dist = true(5,2);
-            est_dist(5,:) = 0;
             if nargin<10,
                 center_optim = true(1,2);
                 if nargin<9,
@@ -173,6 +172,8 @@ for iter = 1:MaxIter,
         % New intrinsic parameters:
         if ~est_aspect(pp) && all(est_fc(:,pp)),
             fc2(2,pp) = fc2(1,pp);
+            ii = (pp-1)*16;
+            intr_up(ii+2) = intr_up(ii+1);
         end;
         % load pixel points
         x_kk = xpair(:,idx,pp);
@@ -255,9 +256,10 @@ return;
 np = 1000;
 checkoutpic = 1;
 flag = 0;
-fov_angle = 60+randn*10;
+fov_angle = 70+randn*5;
+tanfov_2 = tan(pi*fov_angle/360);
 l = 4000+randi([-1000,1000]);
-X = l*tan(fov_angle*pi/360)/2*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
+X = l*tanfov_2/2*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
 Xm = mean(X,2); % aim of cameras
 theta = pi/(rand*10+1);
 om = [zeros(3,1),theta*[cos(theta);0;-sin(theta)]];
@@ -271,11 +273,10 @@ T = [zeros(3,1),-Rt'*(Xm+l*direc)];
 
 xx = NaN(2,np,2);
 imageXY = 500+randi(500,2,2);
-f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
+f = [1;1].*((imageXY(1,:)/2)./tanfov_2)+10*randn(2,2);
 c = (imageXY-1)/2+50*randn(2,2);
-k = zeros(5,2);
-div = 3.^(repmat((1:4)',1,2))+10;
-k(1:4,:) = randn(4,2)./div;
+% k = zeros(5,2);
+k = [randn(1,2)/20; randn(1,2)/100; randn(2,2)/200; randn(1,2)/1000];
 alp = randi([-1,1],1,2).*rand(1,2)/10;
 for i = 1:2,
     x = project_points_mirror2(X,om(:,i),T(:,i),hd(i),f(:,i),c(:,i),k(:,i),alp(i));
@@ -293,7 +294,7 @@ xx = xx(:,id,:);
 X = X(:,id);
 % [om2, T2] = compute_Rt_pair(xx,f,c,k,alp,hd(2));
 f1 = f+100*randn;
-c1 = c+100*randn;
+c1 = (imageXY-1)/2;
 k1 = zeros(5,2);
 alp1 = zeros(1,2);
 [om1, T1] = compute_Rt_pair(xx,f1,c1,k1,alp1,hd(2));

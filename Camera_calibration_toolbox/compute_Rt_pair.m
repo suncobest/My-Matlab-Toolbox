@@ -144,12 +144,13 @@ return;
 %% Test
 np = 500;
 checkoutpic = 1;
-div = 3.^(repmat((1:5)',1,2))+10;
+div = [10; 50; 100; 100; 500]*[1,1];
 flag = 0;
 for count = 1:200,
     fov_angle = 60+randn*10;
+    tanfov_2 = tan(pi*fov_angle/360);
     l = 4000+randi([-1000,1000]);
-    X = l*tan(fov_angle*pi/360)/2*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
+    X = l*tanfov_2/2*(2*rand(3,np)-ones(3,1))+[0;0;l];      % unit: mm
     Xm = mean(X,2); % aim of cameras
     theta = pi/(rand*10+1);
     om = [zeros(3,1),theta*[cos(theta);0;-sin(theta)]];
@@ -161,10 +162,9 @@ for count = 1:200,
     direc = -Rt(:,3);    % the direction of -Z axis of camera 2
     T = [zeros(3,1),-Rt'*(Xm+l*direc)];
 
-    % [x,dxdom,dxdT,dxdf,dxdc,dxdk,dxdalpha,dxdX] = project_points_mirror2(X,om,T,hd,f,c,k,alpha);
     xx = NaN(2,np,2);
-    imageXY = 500+randi(500,2,2);
-    f = (imageXY/2)./repmat(tan(pi*fov_angle/360),2,1);
+    imageXY = 800+randi(500,2,2);
+    f = [1;1].*((imageXY(1,:)/2)./tanfov_2)+10*randn(2,2);
     c = (imageXY-1)/2+50*randn(2,2);
     k = randn(5,2)./div;
     % k = zeros(5,2);
