@@ -194,6 +194,8 @@ for pp = ind_cam,
 end;
 
 err_std = std(ex,0,2);
+[~,ind] = max(sum(ex.^2,1));
+ex_max = ex(:,ind);
 
 return;
 

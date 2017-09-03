@@ -310,7 +310,7 @@ for pp = [1:idm-1, idm+1:n_cam],
                 kk = find(ind);
                 xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
-                if 0,   % est_intrinsic,
+                if est_intrinsic,
                     % refine camera pair
                     est_fc = est_fc_mat(:,id);
                     center_optim = center_optim_vec(id);
@@ -410,11 +410,18 @@ end;
 telapsed = toc(tstart);
 
 
-flag = input('\nFurther refine the extrinsic parameters or not? ([]=no, other=yes) ','s');
-if ~isempty(flag)
-    fprintf(1,'\nRefine extrinsic parameters in the end:\n');
-    optim_1D_extrinsic;
-end;
+% flag = input('\nFurther refine the extrinsic parameters or not? ([]=no, other=yes) ','s');
+% if ~isempty(flag)
+%     fprintf(1,'\nRefine extrinsic parameters in the end:\n');
+%     optim_1D_extrinsic;
+% end;
+
+save_name = 'Calib_Results_1D';
+fprintf(1,['\nSaving calibration results under ' save_name '.mat\n']);
+string_save = ['save ' save_name ' n_cam n_ima imsize fc_mat cc_mat kc_mat alpha_vec handcc hand_list np1D' ...
+                       ' rodlen Omcc Tcc idm A_cam costs paths pathm ind_active active_images active_imgviews' ...
+                       ' est_fc_mat center_optim_vec est_alpha_vec est_dist_mat est_aspect_ratio_vec' ...
+                       ' Xp Xo thph x_cell y_cam ex_cam err_cam err_cam ex err_std err_std0 ex_max'];
 
 if exist('Omcw','var'),
     Om2 = NaN(3,n_cam);
@@ -428,10 +435,14 @@ if exist('Omcw','var'),
         err(1:3,kk) = om-Omcw(:,pp);
         err(4:6,kk) = (T-Tcw(:,pp))/norm(Tcw(:,pp));
     end;
+    string_save = ['save ' save_name ' Omcw Tcw'];
     if exist('Xrod','var'),
         ind = reshape(repmat(active_images,[np1D,1]),1,npts);
         errX = Xp(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
         estdX = std(errX0,0,2);
+        string_save = ['save ' save_name ' Xrod Xori Xdir'];
     end;
 end;
+
+eval(string_save);
 disp('Done.');

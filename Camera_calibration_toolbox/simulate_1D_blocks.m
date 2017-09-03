@@ -37,7 +37,7 @@ fov_angle = 75+randn*5;
 fc_mat = imsize(1,:)/2./tan(pi*fov_angle/360).*[1;1]+randn(2,n_cam)*20;
 cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 alpha_vec = randi([-1,1],1,n_cam).*rand(1,n_cam)/10;
-kc_mat = [randn(1,n_cam)/50; randn(1,n_cam)/1000; randn(2,n_cam)/2000; randn(1,n_cam)/10000];
+kc_mat = [randn(1,n_cam)/20; randn(1,n_cam)/100; randn(2,n_cam)/200; randn(1,n_cam)/1000];
 % kc_mat = zeros(5,n_cam);
 
 % fc_mat = imsize(1,:)/2./tan(pi*fov_angle/360).*[1;1]+randn(2,1)*20;
