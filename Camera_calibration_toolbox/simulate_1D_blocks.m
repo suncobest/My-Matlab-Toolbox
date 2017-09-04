@@ -74,8 +74,8 @@ for count = 1:n_block,
           zeros(1,nps), Zlen*(1:nps)/(nps+1)+randn(1,nps)*delta, Zlen*ones(1,nps), Zlen*(nps:-1:1)/(nps+1)+randn(1,nps)*delta] + x0;
 
     % the orientation of all camera system
-    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-30+60*rand(1,ncpb))*pi/180;
-    pitch = -(20+50*rand(1,ncpb))*pi/180;
+    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-20+40*rand(1,ncpb))*pi/180;
+    pitch = -(20+20*rand(1,ncpb))*pi/180;
     roll = (-10+20*rand(1,ncpb))*pi/180;
     % roll = randn(1,ncpb)/10;    % std = 5.7 degree
     ii = (count-1)*ncpb;

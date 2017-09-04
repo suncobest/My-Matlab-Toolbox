@@ -1,12 +1,13 @@
 % convert
 np1D=3;
 n_cam=10;
-n_ima=580;
+n_ima=504;
 imsize=[1280;1024]*ones(1,n_cam);
 rodlen = [0, 125, 375];
 
 n_view = n_ima * n_cam;
 npts = np1D*n_ima;
+hand_list = ones(1,n_cam);
 xx = zeros(n_ima,7,n_cam);
 for i=1:n_cam,
     xx(:,:,i)=load(['camera0' num2str(i-1) '.txt']);
@@ -28,5 +29,5 @@ xx=reshape(xx,[2,3,n_cam,n_ima]);
 xx=reshape(permute(xx,[1,2,4,3]),[2,npts,n_cam]);
 
 string_save = ['save multicam_real_data active_imgviews active_images ind_active npts n_ima n_cam ' ...
-                   'n_view np1D rodlen hand_list imsize fc_mat cc_mat kc_mat alpha_vec xx x_cell'];
+                   'n_view np1D rodlen hand_list imsize xx x_cell'];
 eval(string_save);

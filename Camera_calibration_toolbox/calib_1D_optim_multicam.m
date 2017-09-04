@@ -213,15 +213,19 @@ if est_intrinsic,
     fprintf(1,'\n');
 
     if ~exist('fc_mat','var'),
-        flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
-        if isempty(flag),
-            FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal length。
-            fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
-            fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
-        else
-            fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
-            intrinsic_1D_rotation;
-        end;
+        FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal length。
+        fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
+        fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
+
+        % flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
+        % if isempty(flag),
+        %     FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal length。
+        %     fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
+        %     fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
+        % else
+        %     fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
+        %     intrinsic_1D_rotation;
+        % end;
     end;
 
     % Initialization of the intrinsic parameters
@@ -310,7 +314,7 @@ for pp = [1:idm-1, idm+1:n_cam],
                 kk = find(ind);
                 xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
-                if est_intrinsic,
+                if 0,  % est_intrinsic,
                     % refine camera pair
                     est_fc = est_fc_mat(:,id);
                     center_optim = center_optim_vec(id);
@@ -416,12 +420,19 @@ telapsed = toc(tstart);
 %     optim_1D_extrinsic;
 % end;
 
+XX = compute_structure2(xx,Omcc,Tcc,handcc,fc_mat,cc_mat,kc_mat,alpha_vec);
+ind = reshape(repmat(active_images,[np1D,1]),1,npts);
+errX = Xp(:,ind)-XX(:,ind);
+estdX = std(errX,0,2);
+[~,ind] = max(sum(errX.^2,1));
+errX_max = errX(:,ind);
+
 save_name = 'Calib_Results_1D';
 fprintf(1,['\nSaving calibration results under ' save_name '.mat\n']);
 string_save = ['save ' save_name ' n_cam n_ima imsize fc_mat cc_mat kc_mat alpha_vec handcc hand_list np1D' ...
                        ' rodlen Omcc Tcc idm A_cam costs paths pathm ind_active active_images active_imgviews' ...
-                       ' est_fc_mat center_optim_vec est_alpha_vec est_dist_mat est_aspect_ratio_vec' ...
-                       ' Xp Xo thph x_cell y_cam ex_cam err_cam err_cam ex err_std err_std0 ex_max'];
+                       ' est_fc_mat center_optim_vec est_alpha_vec est_dist_mat est_aspect_ratio_vec Xp Xo thph' ...
+                       '  x_cell y_cam ex_cam err_cam err_cam ex err_std err_std0 ex_max errX estdX errX_max'];
 
 if exist('Omcw','var'),
     Om2 = NaN(3,n_cam);
@@ -439,8 +450,8 @@ if exist('Omcw','var'),
     if exist('Xrod','var'),
         ind = reshape(repmat(active_images,[np1D,1]),1,npts);
         errX = Xp(:,ind)-rigid_refmotion(Xrod(:,ind),Omcw(:,idm),Tcw(:,idm),hand_list(idm));
-        estdX = std(errX0,0,2);
-        string_save = ['save ' save_name ' Xrod Xori Xdir'];
+        estdX = std(errX,0,2);
+        string_save = ['save ' save_name ' Xrod'];
     end;
 end;
 
