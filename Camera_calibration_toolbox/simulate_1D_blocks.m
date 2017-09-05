@@ -26,18 +26,18 @@ ncpb = nps*4;
 n_cam = n_block*ncpb;
 
 % imsize = 800+randi(1000,2,n_cam);    % size of CMOS
-% fov_angle = 75+randn(1,n_cam)*5;
+% fov_angle = 70+randn(1,n_cam)*5;
 % fc_mat = imsize(1,:)./tan(pi*fov_angle/360)/2.*[1;1]+randn(2,n_cam)*50;
 % cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 % alpha_vec = randi([-1,1],1,n_cam).*rand(1,n_cam)/10;
 % kc_mat = [randn(1,n_cam)/20; randn(1,n_cam)/100; randn(2,n_cam)/200; randn(1,n_cam)/1000];
 
-imsize = (randi(1000,2,1)+800)*ones(1,n_cam);
-fov_angle = 75+randn*5;
+imsize = [1280; 1024]*ones(1,n_cam);
+fov_angle = 70+randn*5;
 fc_mat = imsize(1,:)/2./tan(pi*fov_angle/360).*[1;1]+randn(2,n_cam)*20;
 cc_mat = (imsize-1)/2+randn(2,n_cam)*50;
 alpha_vec = randi([-1,1],1,n_cam).*rand(1,n_cam)/10;
-kc_mat = [randn(1,n_cam)/20; randn(1,n_cam)/100; randn(2,n_cam)/200; randn(1,n_cam)/1000];
+kc_mat = [randn(1,n_cam)/20; randn(1,n_cam)/100; randn(2,n_cam)/200; zeros(1,n_cam)];
 % kc_mat = zeros(5,n_cam);
 
 % fc_mat = imsize(1,:)/2./tan(pi*fov_angle/360).*[1;1]+randn(2,1)*20;
@@ -46,7 +46,7 @@ kc_mat = [randn(1,n_cam)/20; randn(1,n_cam)/100; randn(2,n_cam)/200; randn(1,n_c
 % alpha_vec = zeros(1,n_cam);
 % kc_mat = zeros(5,n_cam);
 
-nfpb = 2000;  % number of frames in each block
+nfpb = 500;  % number of frames in each block
 n_ima = nfpb*n_block;
 Xdir = randn(3,n_ima);   % the direction of rods
 Xdir = Xdir./(ones(3,1)*sqrt(sum(Xdir.^2,1)));
@@ -66,7 +66,7 @@ delta = 200;
 for count = 1:n_block,
     % origin of current block
     x0 = [Xlen*block_oij(count,1); 0; Zlen*block_oij(count,2)];
-    Xori(:,(count-1)*nfpb+1:count*nfpb) = [Xlen*rand(1,nfpb); Ylen*(1+2*rand(1,nfpb))/3; Zlen*rand(1,nfpb)] + x0;
+    Xori(:,(count-1)*nfpb+1:count*nfpb) = [Xlen*rand(1,nfpb); Ylen*(0.5+2*rand(1,nfpb))/3; Zlen*rand(1,nfpb)] + x0;
 
     % the origin of cameras in reference system
     Tc = [Xlen*(1:nps)/(nps+1)+randn(1,nps)*delta, Xlen*ones(1,nps), Xlen*(nps:-1:1)/(nps+1)+randn(1,nps)*delta, zeros(1,nps);
@@ -74,8 +74,8 @@ for count = 1:n_block,
           zeros(1,nps), Zlen*(1:nps)/(nps+1)+randn(1,nps)*delta, Zlen*ones(1,nps), Zlen*(nps:-1:1)/(nps+1)+randn(1,nps)*delta] + x0;
 
     % the orientation of all camera system
-    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-20+40*rand(1,ncpb))*pi/180;
-    pitch = -(20+20*rand(1,ncpb))*pi/180;
+    yaw = [zeros(1,nps), -pi/2*ones(1,nps), pi*ones(1,nps), pi/2*ones(1,nps)]+(-10+20*rand(1,ncpb))*pi/180;
+    pitch = -(25+25*rand(1,ncpb))*pi/180;
     roll = (-10+20*rand(1,ncpb))*pi/180;
     % roll = randn(1,ncpb)/10;    % std = 5.7 degree
     ii = (count-1)*ncpb;

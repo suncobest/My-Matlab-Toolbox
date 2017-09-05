@@ -314,7 +314,7 @@ for pp = [1:idm-1, idm+1:n_cam],
                 kk = find(ind);
                 xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
-                if 0,  % est_intrinsic,
+                if est_intrinsic,
                     % refine camera pair
                     est_fc = est_fc_mat(:,id);
                     center_optim = center_optim_vec(id);
