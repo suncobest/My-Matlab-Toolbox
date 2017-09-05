@@ -14,9 +14,7 @@ q = floor((c+1)/2); % col
 U2 = zeros(r+2,c+2,k);
 
 for i=1:k
-
 	U2(:,:,i) = [U(:,:,i) U(:,end,i)*ones(1,2); ones(2,1)*U(end,:,i) U(end,end,i)*ones(2,2)];
-   
 end;
 
 cp = 2*(0:(p-1))+1; % row
@@ -38,13 +36,11 @@ ss = cp+2;
 V = zeros(r2,c2,k);
 
 for i = 1:k,
-   
    V(:,:,i) = (36*U2(cp,cq,i) + 24*(U2(n,cq,i) + U2(s,cq,i) + U2(cp,e,i) + U2(cp,w,i)) + ...
       16 * (U2(n,e,i) + U2(s,e,i) + U2(n,w,i) + U2(s,w,i)) + ...
       6 * (U2(nn,cq,i) + U2(ss,cq,i) + U2(cp,ee,i) + U2(cp,ww,i)) + ...
       4 * (U2(n,ww,i) + U2(nn,w,i) + U2(n,ee,i) + U2(nn,e,i) + U2(s,ww,i) + U2(ss,w,i) + U2(s,ee,i) + U2(ss,e,i)) + ...
    	(U2(nn,ee,i) + U2(ss,ee,i) + U2(nn,ww,i) + U2(ss,ww,i)))/256;
-   
 end;
 
 return
