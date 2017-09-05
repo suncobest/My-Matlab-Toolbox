@@ -1,6 +1,6 @@
 function [ideal_grid,V_hori,V_vert,H]=denoise_grid(grid_pts,n_sq_x,n_sq_y)
 
-% Computes the ideal grid and vanishing points giving the corner points possible with noise. 
+% Computes the ideal grid and vanishing points giving the corner points possible with noise.
 %
 % grid_pts are the grid points with noise.
 % n_sq_x is number of square in the 1st dimension
@@ -15,7 +15,7 @@ function [ideal_grid,V_hori,V_vert,H]=denoise_grid(grid_pts,n_sq_x,n_sq_y)
 N_x = n_sq_x+1;
 N_y = n_sq_y+1;
 
-[mx,Np] = size(grid_pts); 
+[mx,Np] = size(grid_pts);
 assert(mx==2||mx==3,'Unexpected points dimmension!');
 assert(Np==N_x*N_y,'Number of points unmatched!');
 
@@ -26,7 +26,7 @@ end;
 
 x_grid = zeros(N_x,N_y);
 y_grid = zeros(N_x,N_y);
-x_grid(:) = grid_pts(1,:); 
+x_grid(:) = grid_pts(1,:);
 y_grid(:) = grid_pts(2,:);
 
 vert = zeros(3,N_x);
@@ -84,10 +84,10 @@ for k=1:N_y,
 end;
 
 % regenerate grid points without error
-ideal_grid = zeros(2,Np);    
+ideal_grid = zeros(2,Np);
 for j = 1:N_y,
     for i=1:N_x,
-        x_ij = cross(hori(:,j),vert(:,i));   
+        x_ij = cross(hori(:,j),vert(:,i));
         x_ij = x_ij(1:2)/x_ij(3);
         ideal_grid(:,(j-1)*N_x+i) = x_ij;
     end;
@@ -178,4 +178,3 @@ else
 end
 
 axis tight
-

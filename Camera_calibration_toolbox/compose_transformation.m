@@ -77,4 +77,4 @@ om3p = om3 + dom3dom1*dom1 +  dom3dT1*dT1 + dom3dom2*dom2 +  dom3dT2*dT2;
 T3p  =  T3 + dT3dom1*dom1  +  dT3dT1*dT1  + dT3dom2*dom2  +  dT3dT2*dT2;
 
 norm(om3r - om3) / norm(om3r - om3p)   % 分子是函数变化量，分母是函数余项（二阶以上的高阶项）。大量/小量
-norm(T3r - T3) / norm(T3r - T3p)   
+norm(T3r - T3) / norm(T3r - T3p)

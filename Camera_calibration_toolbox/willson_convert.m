@@ -72,23 +72,23 @@ x(1,:) = x(1,:) - alpha_c * x(2,:);
 k = [0;0;0;0;0];
 
 for kk = 1:5,
-	
+
 	[xd,dxddk] = apply_distortion(x,k);
 
 	err = x_dist - xd;
 
 	%norm(err)
-   
+
    k_step = inv(dxddk'*dxddk)*(dxddk')*err(:);
-   
+
    k = k + k_step; %inv(dxddk'*dxddk)*(dxddk')*err(:);
-   
+
    %norm(k_step)/norm(k)
-   
+
    if norm(k_step)/norm(k) < 10e-10,
       break;
    end;
-   
+
 end;
 
 

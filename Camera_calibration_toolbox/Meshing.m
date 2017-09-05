@@ -21,31 +21,31 @@ end;
 
 
 if spatial,
-    
+
     % Something to fix the organization:
     xpmin = min(xp2);
     xp_ind = round(unique(xp2 - xpmin));
     step_xp = min(diff(xp_ind)); %xp_ind(2) - xp_ind(1);
     xp4 = (xp2 - xpmin)/step_xp + xpmin;
-    
+
     xpmin = min(xp4);
     xpmax = max(xp4);
-    
+
     xcmin = min(xc2(2,:));
     xcmax = max(xc2(2,:));
-    
+
 else
-    
+
     % Something to fix the organization:
-    
+
     xp4 = xc2(1,:);
-    
+
     xpmin = min(xp4);
     xpmax = max(xp4);
-    
+
     xcmin = min(xc2(2,:));
     xcmax = max(xc2(2,:));
-    
+
 end;
 
 
@@ -124,11 +124,11 @@ Div22 = Div22 & (dZ_r(2:Nrow,:)<T_connect) & (dZ_c(:,1:(Ncol-1))<T_connect); % &
 %%% Smoothing:
 
 for i = 1:N_smoothing,
-    
+
     fprintf(1,'Surface smoothing %d\n',i);
-    
+
     % first find the neighbor points of every point:
-    
+
     t = zeros(Nrow,Ncol);
     b = zeros(Nrow,Ncol);
     l = zeros(Nrow,Ncol);
@@ -137,8 +137,8 @@ for i = 1:N_smoothing,
     br = zeros(Nrow,Ncol);
     tl = zeros(Nrow,Ncol);
     bl = zeros(Nrow,Ncol);
-    
-    
+
+
     t(2:Nrow,2:Ncol) = (Div12 | Div21);
     t(2:Nrow,1:(Ncol-1)) = t(2:Nrow,1:(Ncol-1)) | (Div11 | Div22);
     b(1:(Nrow-1),2:Ncol) = (Div12 | Div21);
@@ -151,73 +151,73 @@ for i = 1:N_smoothing,
     br(1:(Nrow-1),1:(Ncol-1)) = Div21 | Div22;
     tl(2:Nrow,2:Ncol) = Div21 | Div22;
     bl(1:(Nrow-1),2:Ncol) = Div11 | Div12;
-    
-    
+
+
     Nn = t + b + l + r + tr + br + tl + bl;
-    
+
     XX = Xmesh; 		     	% zeros(Nrow,2); zeros(2,Ncol+2)];
     YY = Ymesh; 				% zeros(Nrow,2); zeros(2,Ncol+2)];
     ZZ = Zmesh; 				% zeros(Nrow,2); zeros(2,Ncol+2)];
-    
+
     [is,js] = find(Nn);
-    
+
     indd = find((is > 1) & (is < Nrow) & (js > 1) & (js < Ncol));
-    
+
     is = is(indd);
     js = js(indd);
-    
+
     sm =  is + (js-1)*(Nrow);
     sm_t = is + (js-1)*(Nrow) - 1;
     sm_b = is + (js-1)*(Nrow) + 1;
     sm_r = is + (js)*(Nrow);
     sm_l = is + (js-2)*(Nrow);
-    
+
     sm_tr =  is + (js)*(Nrow) - 1;
     sm_br =  is + (js)*(Nrow) + 1;
     sm_tl =  is + (js-2)*(Nrow) -1;
     sm_bl =  is + (js-2)*(Nrow) + 1;
-    
-    
+
+
     XX(sm) = 0.5 * XX(sm) + 0.5 * ((XX(sm_t).*t(sm)+XX(sm_b).*b(sm)+XX(sm_r).*r(sm)+XX(sm_l).*l(sm)+XX(sm_tr).*tr(sm)+XX(sm_br).*br(sm)+XX(sm_tl).*tl(sm)+XX(sm_bl).*bl(sm))./Nn(sm));
-    
+
     YY(sm) = 0.5 * YY(sm) + 0.5 * ((YY(sm_t).*t(sm)+YY(sm_b).*b(sm)+YY(sm_r).*r(sm)+YY(sm_l).*l(sm)+YY(sm_tr).*tr(sm)+YY(sm_br).*br(sm)+YY(sm_tl).*tl(sm)+YY(sm_bl).*bl(sm))./Nn(sm));
-    
+
     ZZ(sm) = 0.5 * ZZ(sm) + 0.5 * ((ZZ(sm_t).*t(sm)+ZZ(sm_b).*b(sm)+ZZ(sm_r).*r(sm)+ZZ(sm_l).*l(sm)+ZZ(sm_tr).*tr(sm)+ZZ(sm_br).*br(sm)+ZZ(sm_tl).*tl(sm)+ZZ(sm_bl).*bl(sm))./Nn(sm));
-    
+
     Xmesh = XX(1:Nrow,1:Ncol);
     Ymesh = YY(1:Nrow,1:Ncol);
     Zmesh = ZZ(1:Nrow,1:Ncol);
-    
-    
+
+
     %%% reconnect after smoothing:
-    
+
     % diagonal measure:
-    
+
     Dm1 =( Xmesh(2:Nrow,1:(Ncol-1)) -  Xmesh(1:(Nrow-1),2:Ncol)).^2 + (Ymesh(2:Nrow,1:(Ncol-1)) -  Ymesh(1:(Nrow-1),2:Ncol)).^2 + (Zmesh(2:Nrow,1:(Ncol-1)) -  Zmesh(1:(Nrow-1),2:Ncol)).^2;
-    
+
     Dm2 = (Xmesh(1:(Nrow-1),1:(Ncol-1)) - Xmesh(2:Nrow,2:Ncol)).^2 + (Ymesh(1:(Nrow-1),1:(Ncol-1)) - Ymesh(2:Nrow,2:Ncol)).^2 + (Zmesh(1:(Nrow-1),1:(Ncol-1)) - Zmesh(2:Nrow,2:Ncol)).^2 ;
-    
-    
+
+
     Div1n = Div1 | ((Dm1 <= Dm2)&Ambi);
     Div2n = Div2 | ((Dm2 < Dm1)&Ambi);
-    
+
     Div11 = Div1n & F1;
     Div12 = Div1n & F2;
     Div21 = Div2n & F3;
     Div22 = Div2n & F4;
-    
-    
+
+
     % look at local difference:
-    
+
     dZ_r = abs(Zmesh(:,2:Ncol)-Zmesh(:,1:(Ncol-1)));
     dZ_c = abs(Zmesh(2:Nrow,:)-Zmesh(1:(Nrow-1),:));
-    
+
     Div11 = Div11 & (dZ_r(1:(Nrow-1),:)<T_connect) & (dZ_c(:,1:(Ncol-1))<T_connect); % & (Dm1 < T_connect);
     Div12 = Div12 & (dZ_r(2:Nrow,:)<T_connect) & (dZ_c(:,2:Ncol)<T_connect); %& (Dm1 < T_connect);
-    
+
     Div21 = Div21 & (dZ_r(1:(Nrow-1),:)<T_connect) & (dZ_c(:,2:Ncol)<T_connect); % & (Dm2 < T_connect);
     Div22 = Div22 & (dZ_r(2:Nrow,:)<T_connect) & (dZ_c(:,1:(Ncol-1))<T_connect); % & (Dm2 < T_connect);
-    
+
 end; 				% of smoothing
 
 
@@ -455,4 +455,3 @@ nz(ind_points) = nc3(3,:);
 
 
 %clear Ambi C1 C2 Cmesh D1 D2 Div Div1 Div11 Div11_u Div12 Div12_u Div2 Div21 Div21_u Div22 Div22_u Div1n Div2n Dm1 Dm2 F1 F2 F3 F4 Faces Faces11 Faces12 Faces21 Faces22 Header Ind_Mat Light Ncol Nn Norms Nrow Stripe T_connect Used_points Vertice_norm XX Xc3 Xmesh YY Ymesh ZZ Zmesh b bl bot_left bot_right br c11 c12 c21 c22 coeff dZ_c dZ_r day dot file i ind ind11_1 ind11_2 ind11_3 ind12_1 ind12_2 ind12_3 ind21_3 ind21_1 ind21_2 ind21_3 ind22_1 ind22_2 ind22_3 ind_col ind_row indd is js l ni nx nx11 nx12 nx21 nx22 ny ny11 ny12 ny21 ny22 nz nz11 nz12 nz21 nz22 r r11 r12 r21 r22 rasterimage sm sm_b sm_bl sm_br sm_l sm_r sm_t sm_tl sm_tr t tl top_left top_right tr u11 u12 u21 u22 unshading v v11 v12 v21 v22 Xc3 xc3_2 xc_texture xcmax xcmesh xcmin xp3 xpmax xpmin ycmesh xc3 ind_points
-

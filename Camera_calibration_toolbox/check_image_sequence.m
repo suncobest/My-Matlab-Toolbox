@@ -32,7 +32,7 @@ for kk = 1:Nl,
     loc_ext = strfind(filenamepp,format_image);
     % string_numÎªÍ¨ÓÃÃûcalib_nameºÍÀ©Õ¹Ãûformat_imageÖ®¼äµÄÊı×Ö£¨È¥³ı'.'£©
     string_num = filenamepp(length_name+1:loc_ext(end) - 2);
-    
+
     if isempty(str2double(string_num)),
         loc_base = [];
     end;
@@ -61,7 +61,7 @@ if n_ima==0,
         end;
         loc_ext = strfind(filenamepp,format_image);
         string_num = filenamepp(length_name+1:loc_ext(end) - 2);
-        
+
         if isempty(str2double(string_num)),
             loc_base = [];
         end;
@@ -76,7 +76,7 @@ if n_ima==0,
             loc_extension = [loc_extension loc_ext(end)];
         end;
     end;
-    
+
     if (n_ima==0),
         fprintf(1,'No image found. File name may be wrong.\n');
         return;
@@ -101,4 +101,4 @@ ind_valid = ind_valid(ind);                              % µÃµ½°´Ğ¡µ½´óĞòºÅÅÅÁĞµ
 
 return;
 % µÃµ½°´Ğ¡µ½´óĞòºÅÅÅÁĞµÄÓĞĞ§Í¼Æ¬µÄÀ©Õ¹ÃûÊ××Ö·ûÎ»ÖÃÁĞ±í
-% loc_extension = loc_extension(ind);           
+% loc_extension = loc_extension(ind);

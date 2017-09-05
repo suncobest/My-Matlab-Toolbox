@@ -5,7 +5,7 @@ function [xc,good,bad,type] = cornerfinder_saddle_point(xt,I,wintx,winty,wx2,wy2
 %Finds the sub-pixel corners on the image I with initial guess xt
 %xt and xc are 2xN matrices. The first component is the x coordinate
 %(horizontal) and the second component is the y coordinate (vertical)
-% 
+%
 %Based on Harris corner finder method
 %
 %Finds corners to a precision below .1 pixel!
@@ -68,17 +68,17 @@ type = zeros(1,N);
 
 
 for i=1:N,
-   
+
    v_extra = resolution + 1; 		% just larger than resolution
-   
+
    compt = 0; 				% no iteration yet
-   
+
    while (norm(v_extra) > resolution) & (compt<MaxIter),
-       
+
        cIx = xc(i,1); 			%
        cIy = xc(i,2); 			% Coords. of the point
        crIx = round(cIx); 		% on the initial image
-       crIy = round(cIy); 		%      
+       crIy = round(cIy); 		%
        itIx = cIx - crIx; 		% Coefficients
        itIy = cIy - crIy; 		% to compute
        if itIx > 0, 			% the sub pixel
@@ -91,32 +91,32 @@ for i=1:N,
        else
            vIy = [0 1+itIy -itIy];
        end;
-       
-      
+
+
       % What if the sub image is not in?
-      
+
       if (crIx-wintx-2 < 1), xmin=1; xmax = 2*wintx+5;
       elseif (crIx+wintx+2 > nx), xmax = nx; xmin = nx-2*wintx-4;
       else
           xmin = crIx-wintx-2; xmax = crIx+wintx+2;
       end;
-      
+
       if (crIy-winty-2 < 1), ymin=1; ymax = 2*winty+5;
       elseif (crIy+winty+2 > ny), ymax = ny; ymin = ny-2*winty-4;
       else
           ymin = crIy-winty-2; ymax = crIy+winty+2;
       end;
-      
-      
+
+
       SI = I(xmin:xmax,ymin:ymax); % The necessary neighborhood
       SI = conv2(conv2(SI,vIx,'same'),vIy,'same');
       SI = SI(2:2*wintx+4,2:2*winty+4); % The subpixel interpolated neighborhood
 
-      
+
       px = cIx + offx;
       py = cIy + offy;
-      
-      
+
+
       if 1, %~saddle,
           [gy,gx] = gradient(SI); 		% The gradient image
           gx = gx(2:2*wintx+2,2:2*winty+2); % extraction of the useful parts only
@@ -124,43 +124,43 @@ for i=1:N,
           gxx = gx .* gx .* mask;
           gyy = gy .* gy .* mask;
           gxy = gx .* gy .* mask;
-          
-          
+
+
           bb = [sum(sum(gxx .* px + gxy .* py)); sum(sum(gxy .* px + gyy .* py))];
-          
+
           a = sum(sum(gxx));
           b = sum(sum(gxy));
           c = sum(sum(gyy));
-          
+
           dt = a*c - b^2;
-          
+
           xc2 = [c*bb(1)-b*bb(2) a*bb(2)-b*bb(1)]/dt;
       else
-          
+
           SI = SI(2:2*wintx+2,2:2*winty+2);
           A =  repmat(mask(:),1,6) .* [px(:).^2 px(:).*py(:) py(:).^2 px(:) py(:) ones((2*wintx+1)*(2*winty+1),1)];
           param = inv(A'*A)*A'*( mask(:).*SI(:));
-          xc2 = (-inv([2*param(1) param(2) ; param(2) 2*param(3) ]) * param(4:5))';  
-          
+          xc2 = (-inv([2*param(1) param(2) ; param(2) 2*param(3) ]) * param(4:5))';
+
       end;
-      
+
       v_extra = xc(i,:) - xc2;
-      
+
       xc(i,:) = xc2;
-      
-      
+
+
       compt = compt + 1;
-      
+
   end;
-  
-  
-  
+
+
+
   if 1,
-      
+
       cIx = xc(i,1); 			%
       cIy = xc(i,2); 			% Coords. of the point
       crIx = round(cIx); 		% on the initial image
-      crIy = round(cIy); 		%      
+      crIy = round(cIy); 		%
       itIx = cIx - crIx; 		% Coefficients
       itIy = cIy - crIy; 		% to compute
       if itIx > 0, 			% the sub pixel
@@ -173,42 +173,42 @@ for i=1:N,
       else
           vIy = [0 1+itIy -itIy];
       end;
-      
-      
+
+
       % What if the sub image is not in?
-      
+
       if (crIx-wintx-2 < 1), xmin=1; xmax = 2*wintx+5;
       elseif (crIx+wintx+2 > nx), xmax = nx; xmin = nx-2*wintx-4;
       else
           xmin = crIx-wintx-2; xmax = crIx+wintx+2;
       end;
-      
+
       if (crIy-winty-2 < 1), ymin=1; ymax = 2*winty+5;
       elseif (crIy+winty+2 > ny), ymax = ny; ymin = ny-2*winty-4;
       else
           ymin = crIy-winty-2; ymax = crIy+winty+2;
       end;
-      
-      
+
+
       SI = I(xmin:xmax,ymin:ymax); % The necessary neighborhood
       SI = conv2(conv2(SI,vIx,'same'),vIy,'same');
       SI = SI(2:2*wintx+4,2:2*winty+4); % The subpixel interpolated neighborhood
       px = cIx + offx;
       py = cIy + offy;
-      
+
       SI = SI(2:2*wintx+2,2:2*winty+2);
       A =  repmat(mask(:),1,6) .* [px(:).^2 px(:).*py(:) py(:).^2 px(:) py(:) ones((2*wintx+1)*(2*winty+1),1)];
       param = inv(A'*A)*A'*( mask(:).*SI(:));
-      xc2 = (-inv([2*param(1) param(2) ; param(2) 2*param(3) ]) * param(4:5))';  
-      
-      
+      xc2 = (-inv([2*param(1) param(2) ; param(2) 2*param(3) ]) * param(4:5))';
+
+
       v_extra = xc(i,:) - xc2;
-      
+
       xc(i,:) = xc2;
   end;
-  
-  
-  
+
+
+
 end;
 
 

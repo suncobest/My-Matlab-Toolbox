@@ -84,34 +84,34 @@ x_kk_n = normalize_pixel(x_kk,fc,cc,kc,alpha_c);
 
 
 while (change > 1e-10)&(iter < MaxIter),
-    
+
     %fprintf(1,'%d...',iter+1);
-    
+
     [x,dxdom,dxdT] = project_points2(X_kk,omckk,Tckk);
-    
+
     ex = x_kk_n - x;
-    
+
     %keyboard;
-    
+
     JJ = [dxdom dxdT];
-    
+
     if cond(JJ) > thresh_cond,
         change = 0;
     else
-        
+
         JJ2 = JJ'*JJ;
-        
+
         param_innov = inv(JJ2)*(JJ')*ex(:);
         param_up = param + param_innov;
         change = norm(param_innov)/norm(param_up);
         param = param_up;
         iter = iter + 1;
-        
+
         omckk = param(1:3);
         Tckk = param(4:6);
-        
+
     end;
-    
+
 end;
 
 %fprintf(1,'\n');

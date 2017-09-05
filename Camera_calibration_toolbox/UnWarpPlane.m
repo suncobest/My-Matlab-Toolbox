@@ -9,12 +9,12 @@ function  [u_hori,u_vert] = UnWarpPlane(x1,x2,x3,x4)
 
 % x1,x2,x3,x4为摄像机坐标系中的点，例如归一化平面上的点
 if nargin < 4,
-   
+
    x4 = x1(:,4);
    x3 = x1(:,3);
    x2 = x1(:,2);
    x1 = x1(:,1);
-   
+
 end;
 
 
@@ -49,7 +49,7 @@ scale = X1(3);     %   scale = x13/d1
 X1 = X1/scale;      % 经过缩放后，X1(3)=1,即X1在归一化平面上，若x1,x2,x3,x4都在归一化平面上，则X1与x1重合。
 X2 = X2/scale;      % X1,X2,X3,X4所在平面过X1且平行于Pov平面，因此X1,X2,X3,X4相似于世界网格。
 X3 = X3/scale;      % 一般四边形x1,x2,x3,x4恢复为平行四边形X1,X2,X3,X4
-X4 = X4/scale;      
+X4 = X4/scale;
 
 u_hori = X2 - X1;  % 相邻两边为网格矢量
 u_vert = X4 - X1;
@@ -63,9 +63,9 @@ return;
 
 
 
- 
 
-%% draw 
+
+%% draw
 % keyboard;
 x=[x1 x2 x3 x4];
 X=[X1 X2 X3 X4];
@@ -107,7 +107,7 @@ return;
 
 
 
-%% test : uncomment the 1st key word 'return' and run the following code in the workspace 
+%% test : uncomment the 1st key word 'return' and run the following code in the workspace
 
 y =[
    -1.0511   -0.7144    0.2222    0.4772

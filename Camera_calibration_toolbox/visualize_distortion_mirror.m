@@ -60,7 +60,7 @@ if flag,
     position(3:4)=position(3:4)*shr;
     set(gca,'position',position);
     set(gca,'fontsize',8,'fontname','clean');
-    
+
     line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
     line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
     line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -72,7 +72,7 @@ if flag,
     line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
     line10=sprintf('Skew                          = %0.4g',alpha_c);
     line11=sprintf('+/- %0.4g',alpha_c_error);
-    
+
     axes('position',[0 0 1 1],'visible','off');
     text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
     text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');
@@ -109,7 +109,7 @@ if flag,
     position(3:4)=position(3:4)*shr;
     set(gca,'position',position);
     set(gca,'fontsize',8,'fontname','clean');
-    
+
     line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
     line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
     line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -121,7 +121,7 @@ if flag,
     line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
     line10=sprintf('Skew                          = %0.4g',alpha_c);
     line11=sprintf('+/- %0.4g',alpha_c_error);
-    
+
     axes('position',[0 0 1 1],'visible','off');
     text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
     text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');
@@ -159,7 +159,7 @@ if flag,
     position(3:4)=position(3:4)*shr;
     set(gca,'position',position);
     set(gca,'fontsize',8,'fontname','clean');
-    
+
     line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
     line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
     line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -171,7 +171,7 @@ if flag,
     line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
     line10=sprintf('Skew                          = %0.4g',alpha_c);
     line11=sprintf('+/- %0.4g',alpha_c_error);
-    
+
     axes('position',[0 0 1 1],'visible','off');
     text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
     text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');

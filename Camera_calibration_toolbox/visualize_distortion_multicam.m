@@ -27,7 +27,7 @@ for pp = 1:n_cam,
         continue;
     end;
     fprintf(1,'Display the image distortion of camera %d:\n',pp);
-    
+
     [gx,gy] = meshgrid(0:nx/20:(nx-1),0:ny/20:(ny-1));
     [ngx,ngy]=size(gx);
     npts = ngx*ngy;
@@ -36,7 +36,7 @@ for pp = 1:n_cam,
     kk_new=[fc(1) alpha_c*fc(1) cc(1);0 fc(2) cc(2);0 0 1];
     rays=kk_new\[px;py;ones(1,length(px))];
     x=[rays(1,:)./rays(3,:);rays(2,:)./rays(3,:)];
-    
+
     fh1 = 2;
     figure(fh1); clf;
     xd=apply_distortion(x,kc);
@@ -52,18 +52,18 @@ for pp = 1:n_cam,
     [C,h]=contour(gx,gy,dr,'k');
     clabel(C,h);
     title(['Complete Distortion Model of Camera ', num2str(pp)]);
-    
+
     axis ij;    % "matrix" axes mode.
     axis([0 nx 0 ny]+0.5);
     axis equal;
     axis tight;
-    
+
     if flag,
         fc_error = fc_mat_error(:,pp);
         cc_error = cc_mat_error(:,pp);
         kc_error = kc_mat_error(:,pp);
         alpha_c_error = alpha_vec_error(pp);
-        
+
         position=get(gca,'Position');
         shr = 0.9;
         position(1)=position(1)+position(3)*((1-shr)/2);
@@ -71,7 +71,7 @@ for pp = 1:n_cam,
         position(3:4)=position(3:4)*shr;
         set(gca,'position',position);
         set(gca,'fontsize',8,'fontname','clean');
-        
+
         line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
         line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
         line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -83,14 +83,14 @@ for pp = 1:n_cam,
         line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
         line10=sprintf('Skew                          = %0.4g',alpha_c);
         line11=sprintf('+/- %0.4g',alpha_c_error);
-        
+
         axes('position',[0 0 1 1],'visible','off');
         text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
         text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');
     end;
     set(fh1,'color',[1,1,1]);
     hold off;
-    
+
     fh2 = 3;
     figure(fh2); clf;
     xd=apply_distortion(x,[0 0 kc(3) kc(4) 0]);
@@ -106,12 +106,12 @@ for pp = 1:n_cam,
     [C,h]=contour(gx,gy,dr,'k');
     clabel(C,h);
     title(['Tangential Distortion Model of Camera ', num2str(pp)]);
-    
+
     axis ij;
     axis([0 nx 0 ny]+0.5);
     axis equal;
     axis tight;
-    
+
     if flag,
         position=get(gca,'Position');
         shr = 0.9;
@@ -120,7 +120,7 @@ for pp = 1:n_cam,
         position(3:4)=position(3:4)*shr;
         set(gca,'position',position);
         set(gca,'fontsize',8,'fontname','clean');
-        
+
         line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
         line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
         line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -132,15 +132,15 @@ for pp = 1:n_cam,
         line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
         line10=sprintf('Skew                          = %0.4g',alpha_c);
         line11=sprintf('+/- %0.4g',alpha_c_error);
-        
+
         axes('position',[0 0 1 1],'visible','off');
         text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
         text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');
     end;
     set(fh2,'color',[1,1,1]);
     hold off;
-    
-    
+
+
     fh3 = 4;
     figure(fh3); clf;
     xd=apply_distortion(x,[kc(1) kc(2) 0 0 kc(5)]);
@@ -156,12 +156,12 @@ for pp = 1:n_cam,
     [C,h]=contour(gx,gy,dr,'k');
     clabel(C,h);
     title(['Radial Distortion Model of Camera ', num2str(pp)]);
-    
+
     axis ij;
     axis([0 nx 0 ny]+0.5);
     axis equal;
     axis tight;
-    
+
     if flag,
         position=get(gca,'Position');
         shr = 0.9;
@@ -170,7 +170,7 @@ for pp = 1:n_cam,
         position(3:4)=position(3:4)*shr;
         set(gca,'position',position);
         set(gca,'fontsize',8,'fontname','clean');
-        
+
         line1=sprintf('Principal Point               = (%0.6g, %0.6g)',cc(1),cc(2));
         line2=sprintf('Focal Length                  = (%0.6g, %0.6g)',fc(1),fc(2));
         line3=sprintf('Radial coefficients           = (%0.4g, %0.4g, %0.4g)',kc(1),kc(2),kc(5));
@@ -182,7 +182,7 @@ for pp = 1:n_cam,
         line9=sprintf('Pixel error                   = [%0.4g, %0.4g]',err_std(1),err_std(2));
         line10=sprintf('Skew                          = %0.4g',alpha_c);
         line11=sprintf('+/- %0.4g',alpha_c_error);
-        
+
         axes('position',[0 0 1 1],'visible','off');
         text(0.11,0,{line9,line2,line1,line10,line3,line4},'horizontalalignment','left','verticalalignment','bottom','fontsize',8,'fontname','clean');
         text(0.9,0.,{line6,line5,line11,line7,line8},'horizontalalignment','right','verticalalignment','bottom','fontsize',8,'fontname','clean');
@@ -190,7 +190,7 @@ for pp = 1:n_cam,
     set(fh3,'color',[1,1,1]);
     hold off;
     figure(fh1);
-    
+
     fprintf(1,'\nPlease check the distortion models of camera %d.\n', pp);
     if pp<n_cam,
         fprintf(1, 'press any key to continue ...\n');

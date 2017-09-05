@@ -13,7 +13,7 @@ function [ out, dout ] = trans_quat_axis( in )
 %  OM = theta*[X Y Z]/norm([X Y Z])
 %
 %  dout is the derivative of the output wrt the input
-%  wrt : with respect to  
+%  wrt : with respect to
 %   See also trans_quat_mat, rodrgues, slerp.
 
 % by zpf, form BIT, 2015-7-12

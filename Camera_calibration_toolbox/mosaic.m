@@ -35,14 +35,14 @@ kk_c = 1;
 II_mosaic = [];
 
 for jj = 1:n_row,
-    
-    
+
+
     II_row = [];
-    
+
     for ii = 1:n_col,
-        
+
         if (exist(['I_' num2str(kk_c)])) & (kk_c <= n_ima),
-            
+
             if active_images(kk_c),
                 eval(['I = I_' num2str(kk_c) ';']);
                 %I = conv2(conv2(I,ker2,'same'),ker2','same'); % anti-aliasing
@@ -50,36 +50,36 @@ for jj = 1:n_row,
             else
                 I = zeros(ny2,nx2);
             end;
-            
+
         else
-            
+
             I = zeros(ny2,nx2);
-            
+
         end;
-        
-        
-        
+
+
+
         II_row = [II_row I];
-        
+
         if ii ~= n_col,
-            
+
             II_row = [II_row zeros(ny2,3)];
-            
+
         end;
-        
-        
+
+
         kk_c = kk_c + 1;
-        
+
     end;
-    
+
     nn2 = size(II_row,2);
-    
+
     if jj ~= n_row,
         II_row = [II_row; zeros(3,nn2)];
     end;
-    
+
     II_mosaic = [II_mosaic ; II_row];
-    
+
 end;
 
 figure(2);
@@ -89,4 +89,3 @@ title('Calibration images');
 set(gca,'Xtick',[])
 set(gca,'Ytick',[])
 axis('image');
-

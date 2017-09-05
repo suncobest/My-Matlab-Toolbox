@@ -56,7 +56,7 @@ for kk = 1:n_ima,
                 fprintf(1,'Warning: Cannot calibrate with view %d of image %d.\n',pp,kk);
                 fprintf(1,'         Set active_imgviews(%d,%d)=0;\n',pp,kk);
                 active_imgviews(pp,kk) = 0;
-            end; 
+            end;
         end;
         if active_imgviews(pp,kk),
             eval(['H_' num2str((kk-1)*n_cam+pp) ' = compute_homography_lm(x_kk,X_kk(1:2,:));']);
@@ -64,7 +64,7 @@ for kk = 1:n_ima,
             eval(['H_' num2str((kk-1)*n_cam+pp) ' = NaN*ones(3,3);']);
         end;
     end;
-    
+
     if active_images(kk)~= any(active_imgviews(:,kk)),
         fprintf(1,'WARNING: Cannot calibrate all views of image %d.\n',kk);
         fprintf(1,'         Set active_images(%d)=0;\n',kk);
@@ -89,11 +89,11 @@ Sub_cc = [1 0 -c_init(1);0 1 -c_init(2);0 0 1];
 n_view = n_ima * n_cam;
 
 for kk=1:n_view,
-    
+
     if active_imgviews(kk),
-        
+
         eval(['Hkk = H_' num2str(kk) ';']);
-        
+
         Hkk = Sub_cc * Hkk;
         %将图像坐标原点平移到主点，不考虑倾斜alpha_c，则有Hkk = diag(fc1,fc2,1)*[r1,r2,t]
         %此时内参数K=diag(fc1,fc2,1)；绝对二次曲线的像（IAC）为omega=inv(K')*inv(K) = diag(1/fc1^2,1/fc2^2,1)
@@ -101,32 +101,32 @@ for kk=1:n_view,
         % [a1,b1,c1]*diag(1/fc1^2,1/fc2^2,1)*[a1;b1;c1] = [a2,b2,c2]*diag(1/fc1^2,1/fc2^2,1)*[a2;b2;c2]
         % 所以[a1*a2, b1*b2, c1*c2]*[1/fc1^2;1/fc2^2;1]=0, [a1*a1-a2*a2, b1*b1-b2*b2, c1*c1-c2*c2]*[1/fc1^2;1/fc2^2;1]=0
         % A_kk*[1/fc1^2;1/fc2^2]=b_kk，增广矩阵A和b也满足A*[1/fc1^2;1/fc2^2]=b
-        
+
         % [a1*a1-a2*a2, b1*b1-b2*b2, c1*c1-c2*c2]*[1/fc1^2;1/fc2^2;1]=[a1+a2,b1+b2,c1+c2]*diag(1/fc1^2,1/fc2^2,1)*[a1-a2;b1-b2;c1-c2]=0；
         % 则h1+h2和h1-h2为共轭消失点
         % 这里的算法等价于init_intrinsic_param.m
-        
+
         V_hori_pix = Hkk(:,1);    % h1
         V_vert_pix = Hkk(:,2);    % h2
-        
+
         a1 = V_hori_pix(1);
         b1 = V_hori_pix(2);
         c1 = V_hori_pix(3);
-        
+
         a2 = V_vert_pix(1);
         b2 = V_vert_pix(2);
         c2 = V_vert_pix(3);
 
         A_kk = [a1*a2  b1*b2;
             a1^2-a2^2  b1^2-b2^2];
-        
+
         b_kk = -[c1*c2;c1^2-c2^2];
-       
-        
+
+
         A = [A;A_kk];
         b = [b;b_kk];
-        
-    end;    
+
+    end;
 end;
 
 % keyboard;

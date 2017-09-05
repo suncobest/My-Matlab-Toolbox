@@ -100,29 +100,29 @@ x = (Y(1:2,:) .* (ones(2,1) * inv_Z));
 
 
 if 0,
-    
+
     bb = (-x(1,:) .* inv_Z)'*ones(1,3);
     cc = (-x(2,:) .* inv_Z)'*ones(1,3);
-    
+
     dxdom = zeros(2*n,3);
     dxdom(1:2:end,:) = ((inv_Z')*ones(1,3)) .* dYdom(1:3:end,:) + bb .* dYdom(3:3:end,:);
     dxdom(2:2:end,:) = ((inv_Z')*ones(1,3)) .* dYdom(2:3:end,:) + cc .* dYdom(3:3:end,:);
-    
+
     dxdT = zeros(2*n,3);
     dxdT(1:2:end,:) = ((inv_Z')*ones(1,3)) .* dYdT(1:3:end,:) + bb .* dYdT(3:3:end,:);
     dxdT(2:2:end,:) = ((inv_Z')*ones(1,3)) .* dYdT(2:3:end,:) + cc .* dYdT(3:3:end,:);
-    
+
 else
-    
-    
+
+
     dxdom = zeros(2*n,3);
     dxdom(1:2:end,:) = dYdom(1:3:end,:)/Zave;
     dxdom(2:2:end,:) = dYdom(2:3:end,:)/Zave;
-    
+
     dxdT = zeros(2*n,3);
     dxdT(1:2:end,:) = dYdT(1:3:end,:)/Zave;
     dxdT(2:2:end,:) = dYdT(2:3:end,:)/Zave;
-    
+
 end;
 
 
