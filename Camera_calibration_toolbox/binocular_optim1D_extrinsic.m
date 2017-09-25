@@ -71,6 +71,7 @@ X = compute_structure2(xpair,omc,Tc,handcc,fc,cc,kc,alpha);
 nima = npts/np1D;
 X = reshape(X,[3,np1D,nima]);
 ind = reshape(all(all(~isnan(X),1),2),1,nima);
+nact = sum(ind);
 X = X(:,:,ind);
 Xlen = permute(sqrt(sum(diff(X,[],2).^2,1)),[3,2,1]);  % length of rod (with ||T2||=1)
 s = mean(diff(rodlen)./mean(Xlen,1));
@@ -82,12 +83,12 @@ Xn = X(:,np1D:np1D:end)-Xo;
 Xn = Xn./(ones(3,1)*sqrt(sum(Xn.^2,1)));
 thph = cartesian2spherical(Xn);
 thph = thph(2:3,:);
-X = reshape(permute(Xo+Xn.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,npts);
+nid = nact*np1D;
+X = reshape(permute(repmat(Xo,[1,1,np1D])+repmat(Xn,[1,1,np1D]).*repmat(reshape(rodlen,[1,1,np1D]),[3,nact]), [1,3,2]), 3,nid);
 
 idx = reshape(ind(ones(np1D,1),:),1,npts);
-nact = sum(ind);
 nact5 = 5*nact;
-nid2 = 2*nact*np1D;
+nid2 = 2*nid;
 
 intr_up = [om; T];
 extr_up = reshape([Xo; thph],nact5,1);

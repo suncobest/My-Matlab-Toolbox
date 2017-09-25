@@ -44,7 +44,7 @@ sphi = sin(thph(2,:));
 % direction of the line.
 xn = [stheta.*cphi; stheta.*sphi; ctheta];
 
-Xp = reshape(permute(Xo+xn.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,nn);
+Xp = reshape(permute(repmat(Xo,[1,1,np1D])+repmat(xn,[1,1,np1D]).*repmat(reshape(rodlen,[1,1,np1D]),[3,N]), [1,3,2]), 3,nn);
 
 if nargout > 1,
     flag = N<=5;

@@ -312,7 +312,9 @@ for pp = [1:idm-1, idm+1:n_cam],
                 alpha_c = alpha_vec(id);
                 handkk = handcc(id(1))*handcc(id(2));
                 kk = find(ind);
-                xx = cell2mat(x_cell(repmat((kk-1)*n_cam,[1,1,2])+reshape(id,[1,1,2])));
+                xx = NaN(2,length(kk)*np1D,2);
+                xx(:,:,1) = cell2mat(x_cell((kk-1)*n_cam+id(1)));
+                xx(:,:,2) = cell2mat(x_cell((kk-1)*n_cam+id(2)));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
                 if est_intrinsic,
                     % refine camera pair

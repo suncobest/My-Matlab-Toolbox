@@ -77,9 +77,8 @@ stheta = sqrt(one_W2);       % sin(theta/2)
 OM1 = Q1(1:3,:);
 n1 = ones(3,1);
 id = stheta>=1e-7;           % sin(theta/2)>=1e-7, so 2e-7<=theta<=pi
+OM = OM1*2;       % if 0<=theta<2e-7, sin(theta/2) = theta/2
 OM(:,id) = theta(n1,id).*OM1(:,id)./stheta(n1,id);
-invid = ~id;                                 % 0<=theta<2e-7
-OM(:,invid) = OM1(:,invid)*2;       % sin(theta/2) = theta/2
 
 if nargout < 2,
     return;
@@ -128,10 +127,9 @@ W = cos(theta/2);
 stheta = sin(theta/2);
 n1 = ones(3,1);
 
-id = theta<1e-7;
-invid = ~id;
-OM1(:,id) = OM(:,id)/2;      % sin(theta/2) = theta/2
-OM1(:,invid) = stheta(n1,invid).*OM(:,invid)./theta(n1,invid);
+id = theta>1e-7;
+OM1 = OM/2;      % if 0<=theta<=1e-7,  sin(theta/2) = theta/2
+OM1(:,id) = stheta(n1,id).*OM(:,id)./theta(n1,id);
 Q = [OM1; W];
 
 if nargout < 2,
@@ -141,13 +139,13 @@ n = length(W);
 dQdOM = zeros(4,3,n);
 for i=1:n,
     if id(i),
-        dWdOM = -OM(:,i)'/4;
-        dOM1dOM = 0.5*eye(3);
-    else
         dthetadOM = OM(:,i)'/theta(i);
         dWdtheta = -0.5*stheta(i);
         dWdOM = dWdtheta*dthetadOM;
         dOM1dOM = eye(3)*stheta(i)/theta(i)+(0.5*W(i)*OM(:,i)-OM1(:,i))/theta(i)*dthetadOM;
+    else
+        dWdOM = -OM(:,i)'/4;
+        dOM1dOM = 0.5*eye(3);
     end;
     dQdOM(:,:,i) = [dOM1dOM; dWdOM];
 end;

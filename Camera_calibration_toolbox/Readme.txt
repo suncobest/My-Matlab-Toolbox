@@ -57,6 +57,7 @@ Global variables definition:
     errX_max: the maximum reconstructed error of points on the rod;
 
 Main calibration subscripts:
+    calib_1D_optim_func.m        % function version
     calib_1D_optim_multicam.m
 
 Bundle adjustment function:
@@ -67,6 +68,7 @@ Bundle adjustment function:
 
 Input and output subroutine:
     simulate_1D_blocks.m      % generate 1D simulation data;
+    write_simu_data.m         % convert MATLAB simulation data into "Goku" data structure;
     convert_goku_mat.m        % convert "Goku" system's output data format to my MATLAB data structure;
     plot_cameras_1D.m         % the drawing subscript showing all cameras and 3D points on rods;
 
@@ -97,5 +99,4 @@ Important math function:
     trans_euler_mat.m        % transform Euler angle into rotation matrix;
     trans_quat_axis.m        % transform quaternion vectors into rotation vector;
     trans_quat_mat.m         % transform quaternion vectors into rotation matrix;
-    write_simu_data.m        % convert MATLAB simulation data into "Goku" data structure;
 

@@ -137,7 +137,7 @@ else
     h1 = sign(randn);
 end;
 delta = randn(3,n1);
-Y1 = rodrigues(om1)*diag([1,1,h1])*X1+T1 + delta;
+Y1 = rodrigues(om1)*diag([1,1,h1])*X1+T1(:,ones(1,n1)) + delta;
 [om2,T2,h2] = compute_rigid_refmotion2(Y1,X1);
 [om3,T3,h3] = compute_rigid_refmotion2(Y1,X1,0);
 e_op = [om2-om1; T2-T1; h2-h1];

@@ -65,7 +65,9 @@ for kk=1:n_ima,
 end;
 
 % all 3D points on rods
-Xrod = reshape(permute(repmat(Xori,[1,1,np1D])+Xdir.*reshape(rodlen,[1,1,np1D]), [1,3,2]), 3,[]);
+Np = np1D*n_ima;
+Xrod = reshape(permute(repmat(Xori,[1,1,np1D])+repmat(Xdir,[1,1,np1D]).*
+                       repmat(reshape(rodlen,[1,1,np1D]),[3,n_ima]), [1,3,2]), 3,Np);
 
 %% cameras:
 n_cam = 20;
@@ -143,7 +145,6 @@ end;
 
 %% 2D projection: generation of 2D points
 n_view = n_ima * n_cam;
-Np = np1D*n_ima;
 active_imgviews = false(n_cam,n_ima);
 x_cell = cell(1,n_view);
 for pp = 1:n_cam,

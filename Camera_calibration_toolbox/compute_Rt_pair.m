@@ -146,7 +146,7 @@ np = 500;
 checkoutpic = 1;
 div = [10; 50; 100; 100; 500]*[1,1];
 flag = 0;
-for count = 1:200,
+for count = 1:1000,
     fov_angle = 60+randn*10;
     tanfov_2 = tan(pi*fov_angle/360);
     l = 4000+randi([-1000,1000]);
@@ -191,7 +191,7 @@ for count = 1:200,
     id = Xlen>1e-3;
     s = mean(Xlen(id)./XXlen(id));
     err = norm([om2;T2]-[om(:,2);T(:,2)/s]);
-    if err>1e-5,
+    if err>1e-1,
         flag = 1;
         break;
     end;
