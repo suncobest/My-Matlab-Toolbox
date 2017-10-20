@@ -1,7 +1,7 @@
 % convert
 np1D=3;
-n_cam=17;
-n_ima=953;
+n_cam=9;
+n_ima=498;
 imsize=[1280;1024]*ones(1,n_cam);
 rodlen = [0, 125, 375];
 

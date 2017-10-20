@@ -1,4 +1,4 @@
-function [om1, om0, dom1dAdt, dom1dA, dom0dAdt, dom0dA] = deuler2rotspeed(Adt, A, op)
+function [om, domdAdt, domdA] = deuler2rotspeed(Adt, A, op, sw)
 % DEULER2ROTSPEED - transform change rate of Euler angle to angular velocity
 % depending on Euler angle convention.
 %
@@ -8,19 +8,24 @@ function [om1, om0, dom1dAdt, dom1dA, dom0dAdt, dom0dA] = deuler2rotspeed(Adt, A
 %  OP: char string of  Euler angle convention;
 %        12 options:
 %  {'XYX', 'XZX', 'YXY', 'YZY', 'ZXZ', 'ZYZ', 'XYZ', 'XZY', 'YXZ', 'YZX', 'ZXY', 'ZYX'}
+%  SW: mode switch to determine frame system of angular velocity.
+%  SW=1 means intrinsic system (default setting); SW=0 means extrinsic system.
 %
-%  OM1: angular velocity under intrinsic system (rotating axes)
-%  OM0: angular velocity under extrinsic system (reference frame)
-%  DOM1DADT: jacobian matrix of OM1 over ADT.
-%  DOM1DA: jacobian matrix of OM1 over A.
-%  DOM0DADT: jacobian matrix of OM0 over ADT.
-%  DOM0DA: jacobian matrix of OM0 over A.
-%   See also rotspeed2deuler, trans_euler_mat, trans_quat_mat, trans_quat_axis, rodrgues.
+%  OM: angular velocity under specific system (instrinsic or extrinsic)
+%  DOMDADT: jacobian matrix of OM over ADT.
+%  DOMDA: jacobian matrix of OM over A.
+%  See also rotspeed2deuler, trans_euler_mat, trans_quat_mat, trans_quat_axis, rodrgues.
 
 % by zpf, form BIT, 2016-3-27
 
 [m, n] = size(Adt);
 assert(isequal(size(A),[m,n]) && m==3, 'The 1st and 2nd arguments must be same size with 3 rows!');
+if nargin<4 || isempty(sw),
+    sw = 1;
+else
+    sw = ~~sw;
+end;
+
 if nargin<3 || isempty(op),
     op = 'ZXZ';
 else
@@ -46,427 +51,643 @@ c1 = cos(a1);
 c2 = cos(a2);
 c3 = cos(a3);
 
-if nargout >2,
+if nargout > 1,
     if n3^2>400,
-        dom1dAdt = sparse([],[],[],n3,n3,n*9);
+        domdAdt = sparse([],[],[],n3,n3,n*9);
     else
-        dom1dAdt = zeros(n3);
+        domdAdt = zeros(n3);
     end;
-    dom1dA = dom1dAdt;
-    dom0dAdt = dom1dAdt;
-    dom0dA = dom1dAdt;
+    if nargout > 2,
+        domdA = domdAdt;
+    end;
 end;
 
 switch op,
     case 'XYX',
-        om1 = [a3t + a1t.*c2;
-            a2t.*c3 + a1t.*s2.*s3;
-            a1t.*c3.*s2 - a2t.*s3];
-
-        if nargout>1,
-            om0 =  [a1t + a3t.*c2;
-                a2t.*c1 + a3t.*s1.*s2;
-                a2t.*s1 - a3t.*c1.*s2];
-
-            if nargout >2,
+        if sw,
+            om = [a3t + a1t.*c2;
+                  a2t.*c3 + a1t.*s2.*s3;
+                  a1t.*c3.*s2 - a2t.*s3];
+        else
+            om = [a1t + a3t.*c2;
+                  a2t.*c1 + a3t.*s1.*s2;
+                  a2t.*s1 - a3t.*c1.*s2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [c2(i),   0, 1;
+                                             s2(i)*s3(i),  c3(i), 0;
+                                             c3(i)*s2(i), -s3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [1,     0,     c2(i);
+                                             0, c1(i),  s1(i)*s2(i);
+                                             0, s1(i), -c1(i)*s2(i)];
+                end;
+            end;
 
-                    dom1dAdt(ii:jj, ii:jj) = [c2(i),   0, 1;
-                        s2(i)*s3(i),  c3(i), 0;
-                        c3(i)*s2(i), -s3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0,     -a1t(i)*s2(i),        0;
-                        0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
-                        0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [1,     0,     c2(i);
-                        0, c1(i),  s1(i)*s2(i);
-                        0, s1(i), -c1(i)*s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [0,   -a3t(i)*s2(i), 0;
-                        a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0;
-                        a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0];
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,     -a1t(i)*s2(i),        0;
+                                               0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
+                                               0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,   -a3t(i)*s2(i), 0;
+                                               a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0;
+                                               a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'XZX',
-        om1 = [a3t + a1t.*c2;
-            a2t.*s3 - a1t.*c3.*s2;
-            a2t.*c3 + a1t.*s2.*s3];
-
-        if nargout>1,
-            om0 = [a1t + a3t.*c2;
-                a3t.*c1.*s2 - a2t.*s1;
-                a2t.*c1 + a3t.*s1.*s2];
-
-            if nargout >2,
+        if sw,
+            om = [a3t + a1t.*c2;
+                  a2t.*s3 - a1t.*c3.*s2;
+                  a2t.*c3 + a1t.*s2.*s3];
+        else
+            om = [a1t + a3t.*c2;
+                  a3t.*c1.*s2 - a2t.*s1;
+                  a2t.*c1 + a3t.*s1.*s2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [c2(i),    0, 1;
-                        -c3(i)*s2(i), s3(i), 0;
-                        s2(i)*s3(i), c3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [ 0,   -a1t(i)*s2(i),      0;
-                        0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i);
-                        0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [ 1,     0,     c2(i);
-                        0, -s1(i), c1(i)*s2(i);
-                        0,  c1(i), s1(i)*s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [0,  -a3t(i)*s2(i), 0;
-                        - a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0;
-                        a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [c2(i),    0, 1;
+                                             -c3(i)*s2(i), s3(i), 0;
+                                             s2(i)*s3(i), c3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [1,     0,     c2(i);
+                                             0, -s1(i), c1(i)*s2(i);
+                                             0,  c1(i), s1(i)*s2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,   -a1t(i)*s2(i),      0;
+                                               0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i);
+                                               0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,  -a3t(i)*s2(i), 0;
+                                               - a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0;
+                                               a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'YXY',
-        om1 = [a2t.*c3 + a1t.*s2.*s3;
-            a3t + a1t.*c2;
-            a2t.*s3 - a1t.*c3.*s2];
-
-        if nargout>1,
-            om0 = [a2t.*c1 + a3t.*s1.*s2;
-                a1t + a3t.*c2;
-                a3t.*c1.*s2 - a2t.*s1];
-
-            if nargout >2,
+        if sw,
+            om = [a2t.*c3 + a1t.*s2.*s3;
+                  a3t + a1t.*c2;
+                  a2t.*s3 - a1t.*c3.*s2];
+        else
+            om = [a2t.*c1 + a3t.*s1.*s2;
+                  a1t + a3t.*c2;
+                  a3t.*c1.*s2 - a2t.*s1];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [s2(i)*s3(i), c3(i), 0;
-                        c2(i),    0, 1;
-                        -c3(i)*s2(i), s3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
-                        0,   -a1t(i)*s2(i),     0;
-                        0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0,  c1(i), s1(i)*s2(i);
-                        1,        0,         c2(i);
-                        0, -s1(i), c1(i)*s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0;
-                        0,    -a3t(i)*s2(i), 0;
-                        - a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [s2(i)*s3(i), c3(i), 0;
+                                             c2(i),    0, 1;
+                                             -c3(i)*s2(i), s3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0,  c1(i), s1(i)*s2(i);
+                                             1,        0,         c2(i);
+                                             0, -s1(i), c1(i)*s2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
+                                               0,   -a1t(i)*s2(i),     0;
+                                               0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0;
+                                               0,    -a3t(i)*s2(i), 0;
+                                               - a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'YZY',
-        om1 = [a1t.*c3.*s2 - a2t.*s3;
-            a3t + a1t.*c2;
-            a2t.*c3 + a1t.*s2.*s3];
-
-        if nargout>1,
-            om0 = [a2t.*s1 - a3t.*c1.*s2;
-                a1t + a3t.*c2;
-                a2t.*c1 + a3t.*s1.*s2];
-
-            if nargout >2,
+        if sw,
+            om = [a1t.*c3.*s2 - a2t.*s3;
+                  a3t + a1t.*c2;
+                  a2t.*c3 + a1t.*s2.*s3];
+        else
+            om = [a2t.*s1 - a3t.*c1.*s2;
+                  a1t + a3t.*c2;
+                  a2t.*c1 + a3t.*s1.*s2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [c3(i)*s2(i), -s3(i), 0;
-                        c2(i),    0, 1;
-                        s2(i)*s3(i),  c3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i);
-                        0,        -a1t(i)*s2(i),            0;
-                        0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, s1(i), -c1(i)*s2(i);
-                        1,       0,          c2(i);
-                        0, c1(i),  s1(i)*s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0;
-                        0,    -a3t(i)*s2(i), 0;
-                        a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [c3(i)*s2(i), -s3(i), 0;
+                                             c2(i),    0, 1;
+                                             s2(i)*s3(i),  c3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, s1(i), -c1(i)*s2(i);
+                                             1,       0,          c2(i);
+                                             0, c1(i),  s1(i)*s2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i);
+                                               0,        -a1t(i)*s2(i),            0;
+                                               0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0;
+                                                0,    -a3t(i)*s2(i), 0;
+                                                a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'ZXZ',
-        om1 = [a2t.*c3 + a1t.*s2.*s3;
-            a1t.*c3.*s2 - a2t.*s3;
-            a3t + a1t.*c2];
-
-        if nargout>1,
-            om0 = [a2t.*c1 + a3t.*s1.*s2;
-                a2t.*s1 - a3t.*c1.*s2;
-                a1t + a3t.*c2];
-
-            if nargout >2,
+        if sw,
+            om = [a2t.*c3 + a1t.*s2.*s3;
+                  a1t.*c3.*s2 - a2t.*s3;
+                  a3t + a1t.*c2];
+        else
+            om = [a2t.*c1 + a3t.*s1.*s2;
+                  a2t.*s1 - a3t.*c1.*s2;
+                  a1t + a3t.*c2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [s2(i)*s3(i),  c3(i), 0;
-                        c3(i)*s2(i), -s3(i), 0;
-                        c2(i),   0, 1];
-
-                    dom1dA(ii:jj, ii:jj) = [0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
-                        0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i);
-                        0,        -a1t(i)*s2(i),               0];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, c1(i),  s1(i)*s2(i);
-                        0, s1(i), -c1(i)*s2(i);
-                        1,       0,        c2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0;
-                        a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0;
-                        0,   -a3t(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [s2(i)*s3(i),  c3(i), 0;
+                                             c3(i)*s2(i), -s3(i), 0;
+                                             c2(i),   0, 1];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, c1(i),  s1(i)*s2(i);
+                                             0, s1(i), -c1(i)*s2(i);
+                                             1,       0,        c2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, a1t(i)*c2(i)*s3(i),   a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
+                                               0, a1t(i)*c2(i)*c3(i), - a2t(i)*c3(i) - a1t(i)*s2(i)*s3(i);
+                                               0,        -a1t(i)*s2(i),               0];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i),  a3t(i)*c2(i)*s1(i), 0;
+                                               a2t(i)*c1(i) + a3t(i)*s1(i)*s2(i), -a3t(i)*c1(i)*c2(i), 0;
+                                               0,   -a3t(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'ZYZ',
-        om1 = [a2t.*s3 - a1t.*c3.*s2;
-            a2t.*c3 + a1t.*s2.*s3;
-            a3t + a1t.*c2];
-
-        if nargout>1,
-            om0 = [a3t.*c1.*s2 - a2t.*s1;
-                a2t.*c1 + a3t.*s1.*s2;
-                a1t + a3t.*c2];
-
-            if nargout >2,
+        if sw,
+            om = [a2t.*s3 - a1t.*c3.*s2;
+                  a2t.*c3 + a1t.*s2.*s3;
+                  a3t + a1t.*c2];
+        else
+            om = [a3t.*c1.*s2 - a2t.*s1;
+                  a2t.*c1 + a3t.*s1.*s2;
+                  a1t + a3t.*c2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [-c3(i)*s2(i), s3(i), 0;
-                        s2(i)*s3(i), c3(i), 0;
-                        c2(i),    0, 1];
-
-                    dom1dA(ii:jj, ii:jj) = [0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i);
-                        0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
-                        0,         -a1t(i)*s2(i),              0];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, -s1(i), c1(i)*s2(i);
-                        0,  c1(i), s1(i)*s2(i);
-                        1,        0,         c2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [- a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0;
-                        a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0;
-                        0,    -a3t(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [-c3(i)*s2(i), s3(i), 0;
+                                             s2(i)*s3(i), c3(i), 0;
+                                             c2(i),    0, 1];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, -s1(i), c1(i)*s2(i);
+                                             0,  c1(i), s1(i)*s2(i);
+                                             1,        0,         c2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, -a1t(i)*c2(i)*c3(i), a2t(i)*c3(i) + a1t(i)*s2(i)*s3(i);
+                                               0,  a1t(i)*c2(i)*s3(i), a1t(i)*c3(i)*s2(i) - a2t(i)*s3(i);
+                                               0,         -a1t(i)*s2(i),              0];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [- a2t(i)*c1(i) - a3t(i)*s1(i)*s2(i), a3t(i)*c1(i)*c2(i), 0;
+                                               a3t(i)*c1(i)*s2(i) - a2t(i)*s1(i), a3t(i)*c2(i)*s1(i), 0;
+                                               0,    -a3t(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'XYZ',
-        om1 = [a2t.*s3 + a1t.*c2.*c3;
-            a2t.*c3 - a1t.*c2.*s3;
-            a3t + a1t.*s2];
-
+        if sw,
+            om = [a2t.*s3 + a1t.*c2.*c3;
+                  a2t.*c3 - a1t.*c2.*s3;
+                  a3t + a1t.*s2];
+        else
+            om = [a1t + a3t.*s2;
+                  a2t.*c1 - a3t.*c2.*s1;
+                  a2t.*s1 + a3t.*c1.*c2];
+        end;
         if nargout>1,
-            om0 = [a1t + a3t.*s2;
-                a2t.*c1 - a3t.*c2.*s1;
-                a2t.*s1 + a3t.*c1.*c2];
-
-            if nargout >2,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [c2(i)*c3(i), s3(i), 0;
-                        -c2(i)*s3(i), c3(i), 0;
-                        s2(i),    0, 1];
-
-                    dom1dA(ii:jj, ii:jj) = [0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
-                        0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i);
-                        0,          a1t(i)*c2(i),            0];
-
-                    dom0dAdt(ii:jj, ii:jj) = [1,       0,       s2(i);
-                        0, c1(i), -c2(i)*s1(i);
-                        0, s1(i),  c1(i)*c2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [0,     a3t(i)*c2(i), 0;
-                        - a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0;
-                        a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [c2(i)*c3(i), s3(i), 0;
+                                             -c2(i)*s3(i), c3(i), 0;
+                                             s2(i),    0, 1];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [1,       0,       s2(i);
+                                             0, c1(i), -c2(i)*s1(i);
+                                             0, s1(i),  c1(i)*c2(i)];
+                end;
+            end;
+            if nargout >2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
+                                               0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i);
+                                               0,          a1t(i)*c2(i),            0];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,     a3t(i)*c2(i), 0;
+                                               - a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0;
+                                               a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'XZY',
-        om1 = [ a1t.*c2.*c3 - a2t.*s3;
-            a3t - a1t.*s2;
-            a2t.*c3 + a1t.*c2.*s3];
-
-        if nargout>1,
-            om0 = [a1t - a3t.*s2;
-                a3t.*c1.*c2 - a2t.*s1;
-                a2t.*c1 + a3t.*c2.*s1];
-
-            if nargout >2,
+        if sw,
+            om = [ a1t.*c2.*c3 - a2t.*s3;
+                   a3t - a1t.*s2;
+                   a2t.*c3 + a1t.*c2.*s3];
+        else
+            om = [a1t - a3t.*s2;
+                  a3t.*c1.*c2 - a2t.*s1;
+                  a2t.*c1 + a3t.*c2.*s1];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [c2(i)*c3(i), -s3(i), 0;
-                        -s2(i),   0, 1;
-                        c2(i)*s3(i),  c3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
-                        0,         -a1t(i)*c2(i),          0;
-                        0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [1,      0,      -s2(i);
-                        0, -s1(i), c1(i)*c2(i);
-                        0,  c1(i), c2(i)*s1(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [0,    -a3t(i)*c2(i), 0;
-                        - a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
-                        a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [c2(i)*c3(i), -s3(i), 0;
+                                             -s2(i),   0, 1;
+                                             c2(i)*s3(i),  c3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [1,      0,      -s2(i);
+                                             0, -s1(i), c1(i)*c2(i);
+                                             0,  c1(i), c2(i)*s1(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
+                                               0,         -a1t(i)*c2(i),          0;
+                                               0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,    -a3t(i)*c2(i), 0;
+                                               - a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
+                                               a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'YXZ',
-        om1 = [a2t.*c3 + a1t.*c2.*s3;
-            a1t.*c2.*c3 - a2t.*s3;
-            a3t - a1t.*s2];
-
-        if nargout>1,
-            om0 = [a2t.*c1 + a3t.*c2.*s1;
-                a1t - a3t.*s2;
-                a3t.*c1.*c2 - a2t.*s1];
-
-            if nargout >2,
+        if sw,
+            om = [a2t.*c3 + a1t.*c2.*s3;
+                  a1t.*c2.*c3 - a2t.*s3;
+                  a3t - a1t.*s2];
+        else
+            om = [a2t.*c1 + a3t.*c2.*s1;
+                  a1t - a3t.*s2;
+                  a3t.*c1.*c2 - a2t.*s1];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [c2(i)*s3(i),  c3(i), 0;
-                        c2(i)*c3(i), -s3(i), 0;
-                        -s2(i),   0, 1];
-
-                    dom1dA(ii:jj, ii:jj) = [0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i);
-                        0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
-                        0,       -a1t(i)*c2(i),           0];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0,  c1(i), c2(i)*s1(i);
-                        1,        0,       -s2(i);
-                        0, -s1(i), c1(i)*c2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0;
-                        0,   -a3t(i)*c2(i), 0;
-                        - a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [c2(i)*s3(i),  c3(i), 0;
+                                             c2(i)*c3(i), -s3(i), 0;
+                                             -s2(i),   0, 1];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0,  c1(i), c2(i)*s1(i);
+                                             1,        0,       -s2(i);
+                                             0, -s1(i), c1(i)*c2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i);
+                                               0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
+                                               0,       -a1t(i)*c2(i),           0];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0;
+                                               0,   -a3t(i)*c2(i), 0;
+                                               - a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'YZX',
-        om1 = [a3t + a1t.*s2;
-            a2t.*s3 + a1t.*c2.*c3;
-            a2t.*c3 - a1t.*c2.*s3];
-
-        if nargout>1,
-            om0 = [a2t.*s1 + a3t.*c1.*c2;
-                a1t + a3t.*s2;
-                a2t.*c1 - a3t.*c2.*s1];
-
-            if nargout >2,
+        if sw,
+            om = [a3t + a1t.*s2;
+                  a2t.*s3 + a1t.*c2.*c3;
+                  a2t.*c3 - a1t.*c2.*s3];
+        else
+            om = [a2t.*s1 + a3t.*c1.*c2;
+                  a1t + a3t.*s2;
+                  a2t.*c1 - a3t.*c2.*s1];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [s2(i),   0, 1;
-                        c2(i)*c3(i), s3(i), 0;
-                        -c2(i)*s3(i), c3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0,          a1t(i)*c2(i),             0;
-                        0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
-                        0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, s1(i),  c1(i)*c2(i);
-                        1,       0,         s2(i);
-                        0, c1(i), -c2(i)*s1(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
-                        0,    a3t(i)*c2(i), 0;
-                        - a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [s2(i),   0, 1;
+                                             c2(i)*c3(i), s3(i), 0;
+                                             -c2(i)*s3(i), c3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, s1(i),  c1(i)*c2(i);
+                                             1,       0,         s2(i);
+                                             0, c1(i), -c2(i)*s1(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,          a1t(i)*c2(i),             0;
+                                               0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i);
+                                               0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
+                                               0,    a3t(i)*c2(i), 0;
+                                               - a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'ZXY',
-        om1 = [a2t.*c3 - a1t.*c2.*s3;
-            a3t + a1t.*s2;
-            a2t.*s3 + a1t.*c2.*c3];
-
-        if nargout>1,
-            om0 = [a2t.*c1 - a3t.*c2.*s1;
-                a2t.*s1 + a3t.*c1.*c2;
-                a1t + a3t.*s2];
-
-            if nargout >2,
+        if sw,
+            om = [a2t.*c3 - a1t.*c2.*s3;
+                  a3t + a1t.*s2;
+                  a2t.*s3 + a1t.*c2.*c3];
+        else
+            om = [a2t.*c1 - a3t.*c2.*s1;
+                  a2t.*s1 + a3t.*c1.*c2;
+                  a1t + a3t.*s2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [-c2(i)*s3(i), c3(i), 0;
-                        s2(i),    0, 1;
-                        c2(i)*c3(i), s3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i);
-                        0,          a1t(i)*c2(i),               0;
-                        0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, c1(i), -c2(i)*s1(i);
-                        0, s1(i),  c1(i)*c2(i);
-                        1,       0,        s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [- a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0;
-                        a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
-                        0,     a3t(i)*c2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [-c2(i)*s3(i), c3(i), 0;
+                                             s2(i),    0, 1;
+                                             c2(i)*c3(i), s3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, c1(i), -c2(i)*s1(i);
+                                             0, s1(i),  c1(i)*c2(i);
+                                             1,       0,        s2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,  a1t(i)*s2(i)*s3(i), - a2t(i)*s3(i) - a1t(i)*c2(i)*c3(i);
+                                               0,          a1t(i)*c2(i),               0;
+                                               0, -a1t(i)*c3(i)*s2(i),   a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [- a2t(i)*s1(i) - a3t(i)*c1(i)*c2(i),  a3t(i)*s1(i)*s2(i), 0;
+                                               a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
+                                               0,     a3t(i)*c2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     case 'ZYX',
-        om1 = [a3t - a1t.*s2;
-            a2t.*c3 + a1t.*c2.*s3;
-            a1t.*c2.*c3 - a2t.*s3];
-
-        if nargout>1,
-            om0 = [a3t.*c1.*c2 - a2t.*s1;
-                a2t.*c1 + a3t.*c2.*s1;
-                a1t - a3t.*s2];
-
-            if nargout >2,
+        if sw,
+            om = [a3t - a1t.*s2;
+                  a2t.*c3 + a1t.*c2.*s3;
+                  a1t.*c2.*c3 - a2t.*s3];
+        else
+            om = [a3t.*c1.*c2 - a2t.*s1;
+                  a2t.*c1 + a3t.*c2.*s1;
+                  a1t - a3t.*s2];
+        end;
+        if nargout > 1,
+            if sw,
                 for i=1:n,
                     temp = (i-1)*3;
                     ii = temp+1;
                     jj = temp+3;
-                    dom1dAdt(ii:jj, ii:jj) = [-s2(i),   0, 1;
-                        c2(i)*s3(i),  c3(i), 0;
-                        c2(i)*c3(i), -s3(i), 0];
-
-                    dom1dA(ii:jj, ii:jj) = [0,         -a1t(i)*c2(i),           0;
-                        0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i);
-                        0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i)];
-
-                    dom0dAdt(ii:jj, ii:jj) = [0, -s1(i), c1(i)*c2(i);
-                        0,  c1(i), c2(i)*s1(i);
-                        1,        0,        -s2(i)];
-
-                    dom0dA(ii:jj, ii:jj) = [- a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
-                        a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0;
-                        0,   -a3t(i)*c2(i), 0];
+                    domdAdt(ii:jj, ii:jj) = [-s2(i),   0, 1;
+                                             c2(i)*s3(i),  c3(i), 0;
+                                             c2(i)*c3(i), -s3(i), 0];
+                end;
+            else
+                for i=1:n,
+                    temp = (i-1)*3;
+                    ii = temp+1;
+                    jj = temp+3;
+                    domdAdt(ii:jj, ii:jj) = [0, -s1(i), c1(i)*c2(i);
+                                             0,  c1(i), c2(i)*s1(i);
+                                             1,        0,        -s2(i)];
+                end;
+            end;
+            if nargout > 2,
+                if sw,
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [0,         -a1t(i)*c2(i),           0;
+                                               0, -a1t(i)*s2(i)*s3(i),   a1t(i)*c2(i)*c3(i) - a2t(i)*s3(i);
+                                               0, -a1t(i)*c3(i)*s2(i), - a2t(i)*c3(i) - a1t(i)*c2(i)*s3(i)];
+                    end;
+                else
+                    for i=1:n,
+                        temp = (i-1)*3;
+                        ii = temp+1;
+                        jj = temp+3;
+                        domdA(ii:jj, ii:jj) = [- a2t(i)*c1(i) - a3t(i)*c2(i)*s1(i), -a3t(i)*c1(i)*s2(i), 0;
+                                               a3t(i)*c1(i)*c2(i) - a2t(i)*s1(i), -a3t(i)*s1(i)*s2(i), 0;
+                                               0,   -a3t(i)*c2(i), 0];
+                    end;
                 end;
             end;
         end;
-
     otherwise,
         error('Unexpected input for the 3rd argument!');
 end;
@@ -520,13 +741,15 @@ for k=1:12,
     at(:,2:end-1) = at(:,2:end-1)/2;
     at = at/dt;
     % recompute angular velocity
-    [av1,av0,dav1dat, dav1daa, dav0dat, dav0daa] = deuler2rotspeed(at, aa, st{k});
+    [av1, dav1dat, dav1daa] = deuler2rotspeed(at, aa, st{k}, 1);
+    [av0, dav0dat, dav0daa] = deuler2rotspeed(at, aa, st{k}, 0);
     err = av0-av;
     fprintf(1,['\nResult of ' st{k} ' :\n\nnorm(av0-av)=%f\n'],norm(err));
     % test jacobian
     dat = at/1000;
     daa = aa/1000;
-    [av11, av01] = deuler2rotspeed(at+dat, aa+daa, st{k});
+    av11 = deuler2rotspeed(at+dat, aa+daa, st{k}, 1);
+    av01 = deuler2rotspeed(at+dat, aa+daa, st{k}, 0);
     av12 = av1+reshape(dav1dat*dat(:),3,[])+reshape(dav1daa*daa(:),3,[]);
     gain1 = norm(av11-av1)/norm(av11-av12);
     av02 = av0+reshape(dav0dat*dat(:),3,[])+reshape(dav0daa*daa(:),3,[]);

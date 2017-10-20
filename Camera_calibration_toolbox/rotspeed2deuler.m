@@ -15,7 +15,7 @@ function [Adt, dAdtdom, dAdtdA] = rotspeed2deuler(om, A, op, sw)
 %  ADT: change rate of Euler angle;
 %  DADTDOM: jacobian matrix of ADT over OM.
 %  DAdtDA: jacobian matrix of ADT over A.
-%   See also deuler2rotspeed, trans_euler_mat, trans_quat_mat, trans_quat_axis, rodrgues.
+%  See also deuler2rotspeed, trans_euler_mat, trans_quat_mat, trans_quat_axis, rodrgues.
 
 % by zpf, form BIT, 2016-3-28
 

@@ -213,14 +213,12 @@ if est_intrinsic,
     fprintf(1,'\n');
 
     if ~exist('fc_mat','var'),
-        FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal lengthã€‚
-        fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
+        FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal lengthã€?        fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
         fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
 
         % flag = input('The calibration rod was only under rotation or not? ([]=no, other=yes) ','s');
         % if isempty(flag),
-        %     FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal lengthã€‚
-        %     fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
+        %     FOV_angle = 70; %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal lengthã€?        %     fprintf(1,'Initialization of the focal length with FOV of %3.1f degrees.\n\n',FOV_angle);
         %     fc_mat = ones(2,1)*(imsize(1,:)/2)/tan(pi*FOV_angle/360);    % FOV_angle=2*atan(nx/(2*fc))
         % else
         %     fprintf(1,'\nInitialization of the intrinsic parameters using Zhang Zhengyou''s algorithm.\n');
@@ -316,7 +314,7 @@ for pp = [1:idm-1, idm+1:n_cam],
                 xx(:,:,1) = cell2mat(x_cell((kk-1)*n_cam+id(1)));
                 xx(:,:,2) = cell2mat(x_cell((kk-1)*n_cam+id(2)));
                 [om2,T2] = compute_Rt_pair(xx,fc,cc,kc,alpha_c,handkk);
-                if est_intrinsic,
+                if 0,  % est_intrinsic,
                     % refine camera pair
                     est_fc = est_fc_mat(:,id);
                     center_optim = center_optim_vec(id);

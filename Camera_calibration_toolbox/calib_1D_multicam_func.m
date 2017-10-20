@@ -1,12 +1,12 @@
-function [Omcc,Tcc,fc_mat,cc_mat,kc_mat,alpha_vec,ybody,err_std,err_std0,ex_max,err_cam,Xp,XX,Xo,thph,estdX,errX_max,telapsed,...
-          idm,pathm,A_cam,costs,paths] = calib_1D_multicam_func(xbody,rodlen,imsize,fc_mat,cc_mat,kc_mat,alpha_vec,hand_list,...
-                                                                est_fc_mat,center_optim_vec,est_dist_mat,est_alpha_vec,est_aspect_ratio_vec)
+function [Omcc,Tcc,fc_mat,cc_mat,kc_mat,alpha_vec,err_std,err_std0,ex_max,err_cam,estdX,errX_max,Xp,XX,Xo,thph,idm,pathm,...
+          A_cam,costs,paths] = calib_1D_multicam_func(xbody,rodlen,imsize,fc_mat,cc_mat,kc_mat,alpha_vec,hand_list,est_fc_mat,...
+                                                      center_optim_vec,est_dist_mat,est_alpha_vec,est_aspect_ratio_vec)
 % calib_1D_multicam_func
 %
 % Main calibration function. Computes the intrinsic and extrinsic parameters.
 % Runs as a script.
 %
-% INPUT: xbody: (2*n_ima*n_cam) Feature locations on the images;
+% INPUT: xbody: (2*npts*n_cam) Feature locations on the images;
 %        rodlen: the 1D coordinates of points on the rod;
 %
 % OUTPUT: fc_mat: focal length of cameras;
@@ -57,9 +57,11 @@ elseif n~=n_cam,
     error('Unexpected dimension of image sizes!');
 end;
 
-active_imgviews = permute(all(reshape(permute(all(~isnan(xbody),1), [3,2,1]),[n_cam, np1D, n_ima]),2),[1,3,2]);
+active_imgviews = permute(any(reshape(permute(any(xbody,1), [3,2,1]),[n_cam, np1D, n_ima]),2),[1,3,2]);
 active_images = sum(active_imgviews,1)>1;
 active_imgviews(:,~active_images) = 0;
+ind = reshape(repmat(reshape(active_imgviews',1, n_ima * n_cam), np1D, 1), 1, npts * n_cam);
+xbody(:,~ind) = NaN;
 
 est_intrinsic = 0;
 FOV_angle = 70;  %field of view in degrees: for 135 camera, 70 degree of FOV is about 25 mm focal length.
@@ -91,14 +93,14 @@ if ~exist('cc_mat','var'),
 else
     [m,n] = size(cc_mat);
     if m~=2,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' principle points!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' principle points!\n');
         fprintf(1,'\nInitialization of the principal point at the center of each camera view!\n');
         cc_mat = (imsize-1)/2;     % cc = [(nx-1)/2;(ny-1)/2];
         est_intrinsic = 1;
     elseif n==1,
         cc_mat = cc_mat*ones(1,n_cam);
     elseif n~=n_cam,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' principle points!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' principle points!\n');
         fprintf(1,'\nInitialization of the principal point at the center of each camera view!\n');
         cc_mat = (imsize-1)/2;     % cc = [(nx-1)/2;(ny-1)/2];
         est_intrinsic = 1;
@@ -114,7 +116,7 @@ else
     if n==1,
         kc_mat = kc_mat*ones(1,n_cam);
     elseif n~=n_cam,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' distortion coefficients!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' distortion coefficients!\n');
         fprintf(1,'\nInitialization of all camera image distortion to zero!\n');
         kc_mat = zeros(5,n_cam);
         est_intrinsic = 1;
@@ -123,7 +125,7 @@ else
         fprintf(1,'\nRadial distortion coefficient up to the 6th degree.\n');
         kc_mat = [kc_mat;zeros(5-m,n_cam)];
     elseif m>5,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' distortion coefficients!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' distortion coefficients!\n');
         fprintf(1,'\nInitialization of all camera image distortion to zero!\n');
         kc_mat = zeros(5,n_cam);
         est_intrinsic = 1;
@@ -135,23 +137,23 @@ if ~exist('alpha_vec','var'),
     alpha_vec = zeros(1,n_cam);
     est_intrinsic = 1;
 else
-    [m,n] = size(cc_mat);
+    [m,n] = size(alpha_vec);
     if m~=1,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' skew coefficients!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' skew coefficients!\n');
         fprintf(1,'\nInitialization of all camera image skew to zero.\n');
         alpha_vec = zeros(1,n_cam);
         est_intrinsic = 1;
     elseif n==1,
         alpha_vec = alpha_vec*ones(1,n_cam);
     elseif n~=n_cam,
-        fpintf(1,'\nWarning: Unexpected dimension of cameras'' skew coefficients!\n');
+        fprintf(1,'\nWarning: Unexpected dimension of cameras'' skew coefficients!\n');
         fprintf(1,'\nInitialization of all camera image skew to zero.\n');
         alpha_vec = zeros(1,n_cam);
         est_intrinsic = 1;
     end;
 end;
 
-if ~exist('hand_list','var') || ~isequal(abs(handvec),ones(1,n_cam)),
+if ~exist('hand_list','var') || ~isequal(abs(hand_list),ones(1,n_cam)),
     hand_list  = ones(1,n_cam);
 end;
 
@@ -331,7 +333,6 @@ end;
 
 % threshold to terminate the main LM iteration
 gradeps = 1e-5;
-telapsed = tic;
 
 %%% calculate the shortest path from all cameras to selected camera.
 A_cam = zeros(n_cam);   % adjacency matrix of all camera nodes
@@ -627,7 +628,6 @@ thph = extr_param(4:5,:);
 Xp = gen_1D_points(Xo,thph,rodlen);
 
 % compute the reprojected errors
-ybody = NaN(2, npts, n_cam);  % Reprojected points
 err_cam = zeros(2,n_cam);
 ex = [];
 for pp = ind_cam,
@@ -644,7 +644,6 @@ for pp = ind_cam,
     y_kk = project_points_mirror2(Xp(:,ind),omwkk,Twkk,handkk,fc,cc,kc,alpha_c);
     ex_kk = x_kk - y_kk;
     ex = [ex, ex_kk];
-    ybody(:,ind,pp) = y_kk;
     err_cam(:,pp) = std(ex_kk,0,2);
 end;
 
@@ -659,5 +658,4 @@ estdX = std(errX,0,2);
 [~,ind] = max(sum(errX.^2,1));
 errX_max = errX(:,ind);
 
-telapsed = toc(telapsed);
 disp('Done.');

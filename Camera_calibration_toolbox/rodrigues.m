@@ -55,41 +55,50 @@ if ((m==1) && (n==3)) || ((m==3) && (n==1)) %% it is a rotation vector
         alpha = cos(theta);
         beta = sin(theta);
         gamma = 1-cos(theta);
-        omegav=[[0 -omega(3) omega(2)];[omega(3) 0 -omega(1)];[-omega(2) omega(1) 0 ]];
+        omegav=[0 -omega(3) omega(2); omega(3) 0 -omega(1); -omega(2) omega(1) 0];
         A = omega*omega';
         R = eye(3)*alpha + omegav*beta + A*gamma;
 
         if nargout >1,
-            %m3 = [in,theta]
-            dm3din = [eye(3);in'/theta];
-            %m2 = [omega;theta]
-            dm2dm3 = [eye(3)/theta -in/theta^2; zeros(1,3) 1];
-            %m1 = [alpha;beta;gamma;omegav;A];
-            dm1dm2 = zeros(21,4);
-            dm1dm2(1,4) = -sin(theta);
-            dm1dm2(2,4) = cos(theta);
-            dm1dm2(3,4) = sin(theta);
-            dm1dm2(4:12,1:3) = [0 0 0 0 0 1 0 -1 0;
-                0 0 -1 0 0 0 1 0 0;
-                0 1 0 -1 0 0 0 0 0]';
-
             w1 = omega(1);
             w2 = omega(2);
             w3 = omega(3);
 
-            dm1dm2(13:21,1) = [2*w1;w2;w3;w2;0;0;w3;0;0];
-            dm1dm2(13: 21,2) = [0;w1;0;w1;2*w2;w3;0;w3;0];
-            dm1dm2(13:21,3) = [0;0;w1;0;0;w2;w1;w2;2*w3];
+            dthetadom = omega';
+            dR1dom = -beta*[1; 0; 0; 0; 1; 0; 0; 0; 1]*dthetadom;
+            dR2dom = (alpha-beta/theta)*omegav(:)*dthetadom + ...
+                     beta/theta*[0, 0, 0; 0, 0, 1;  0, -1, 0; 0, 0, -1; 0, 0, 0; 1, 0, 0; 0, 1, 0; -1, 0, 0; 0, 0, 0];
+            dR3dom = (beta-2*gamma/theta)*A(:)*dthetadom + ...
+                     gamma/theta*[2*w1, 0, 0; w2, w1, 0; w3, 0, w1; w2, w1, 0; 0, 2*w2, 0; 0, w3, w2; w3, 0, w1; 0, w3, w2; 0, 0, 2*w3];
+            dout = dR1dom + dR2dom +dR3dom;
 
-            dRdm1 = zeros(9,21);
+            % %m3 = [in,theta]
+            % dm3din = [eye(3);in'/theta];
+            % %m2 = [omega;theta]
+            % dm2dm3 = [eye(3)/theta -in/theta^2; zeros(1,3) 1];
+            % %m1 = [alpha;beta;gamma;omegav;A];
+            % dm1dm2 = zeros(21,4);
+            % dm1dm2(1,4) = -sin(theta);
+            % dm1dm2(2,4) = cos(theta);
+            % dm1dm2(3,4) = sin(theta);
+            % dm1dm2(4:12,1:3) = [0 0 0 0 0 1 0 -1 0;
+            %     0 0 -1 0 0 0 1 0 0;
+            %     0 1 0 -1 0 0 0 0 0]';
 
-            dRdm1([1 5 9],1) = ones(3,1);
-            dRdm1(:,2) = omegav(:);
-            dRdm1(:,4:12) = beta*eye(9);
-            dRdm1(:,3) = A(:);
-            dRdm1(:,13:21) = gamma*eye(9);
 
-            dout  = dRdm1 * dm1dm2 * dm2dm3 * dm3din;
+            % dm1dm2(13:21,1) = [2*w1;w2;w3;w2;0;0;w3;0;0];
+            % dm1dm2(13: 21,2) = [0;w1;0;w1;2*w2;w3;0;w3;0];
+            % dm1dm2(13:21,3) = [0;0;w1;0;0;w2;w1;w2;2*w3];
+
+            % dRdm1 = zeros(9,21);
+
+            % dRdm1([1 5 9],1) = ones(3,1);
+            % dRdm1(:,2) = omegav(:);
+            % dRdm1(:,4:12) = beta*eye(9);
+            % dRdm1(:,3) = A(:);
+            % dRdm1(:,13:21) = gamma*eye(9);
+
+            % dout  = dRdm1 * dm1dm2 * dm2dm3 * dm3din;
         end;
 
     end;
